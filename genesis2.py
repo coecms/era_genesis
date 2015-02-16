@@ -21,7 +21,6 @@ except:
     module load python pythonlib/f90nml pythonlib/netCDF4
     """ )
 
-
 def parse_arguments():
     """(None) -> args
 
@@ -111,18 +110,16 @@ def parse_arguments():
     args = cleanup_args(args)
     return args
 
-
 def main():
-
     args = parse_arguments()
-
     if args.test:
         import doctest
         doctest.testmod()
-    else:
-        if args.debug: 
-            for k in args.__dict__:
-                print( "{:10}: {}".format(k, args.__dict__[k]) )
+        exit()
+
+    if args.debug: 
+        for k in args.__dict__:
+            print( "{:10}: {}".format(k, args.__dict__[k]) )
 
 
 
