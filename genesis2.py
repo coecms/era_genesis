@@ -53,10 +53,8 @@ def main():
 
   args = parse_arguments()
   if args.debug: 
-    args_dict = args.__dict__
-    for k in args_dict:
-      print( "{:10}: {}".format(k, args_dict[k]) )
-    del( args_dict )
+    for k in args.__dict__:
+      print( "{:10}: {}".format(k, args.__dict__[k]) )
 
 
 if __name__ == '__main__':
