@@ -28,6 +28,8 @@ def parse_arguments():
   """
 
   parser = argparse.ArgumentParser(description='Cleans up the template file')
+  parser.add_argument('-X', '--lon', help='longitude', type=float, required=True)
+  parser.add_argument('-Y', '--lat', help='latitude', type=float, required=True)
   parser.add_argument('-t', '--template', metavar='FILE', default='template.scm', 
                       help='Namelist Template')
   parser.add_argument('-o', '--output', metavar='FILE', default='t_out.scm',
