@@ -18,7 +18,7 @@ except:
   Failed to import netCDF4 module
   module use ~access/modules
   module load pythonlib/netCDF4
-  """
+  """ )
 
 
 def parse_arguments():
@@ -37,9 +37,9 @@ def parse_arguments():
   parser.add_argument('-M', '--hPa', default=False, action='store_true',
                       help='Convert surface pressure from hPa to Pa')
   parser.add_argument('-D', '--date', default='dates.dat', metavar='FILE',
-                      action='store_true', help='User Date file')
+                      help='User Date file')
   parser.add_argument('-O', '--offset', metavar='FILE',
-                      action='store_true', help='User Offset File')
+                      help='User Offset File')
   parser.add_argument('-d', '--debug', default=False, action='store_true',
                       help='Debug')
 
