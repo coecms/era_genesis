@@ -22,32 +22,71 @@ except:
     """ )
 
 
-def create_filename(var, date):
+def get_filename(var, date):
     """( str, datetime.datetime ) -> str
 
     Creates a string pointing to the file that contains the required
     variable var for the date date.
 
     >>> d = datetime.datetime( year=2000, month=10, day=5 )
-    >>> create_filename( 'U', d )
+    >>> get_filename( 'U', d )
     '/g/data1/ua8/erai/netcdf/oper_an_pl/fullres/sub-daily/2000/U_6hrs_pl_2000_10.nc'
-    >>> create_filename( 'V', d )
+    >>> get_filename( 'V', d )
     '/g/data1/ua8/erai/netcdf/oper_an_pl/fullres/sub-daily/2000/V_6hrs_pl_2000_10.nc'
-    >>> create_filename( 'T', d )
+    >>> get_filename( 'T', d )
     '/g/data1/ua8/erai/netcdf/oper_an_pl/fullres/sub-daily/2000/T_6hrs_pl_2000_10.nc'
-    >>> create_filename( 'Z', d )
+    >>> get_filename( 'Z', d )
     '/g/data1/ua8/erai/netcdf/oper_an_pl/fullres/sub-daily/2000/Z_6hrs_pl_2000_10.nc'
-    >>> create_filename( 'Q', d )
+    >>> get_filename( 'Q', d )
     '/g/data1/ua8/erai/netcdf/oper_an_pl/fullres/sub-daily/2000/Q_6hrs_pl_2000_10.nc'
-    >>> create_filename( 'P', d )
+    >>> get_filename( 'P', d )
     '/g/data1/ua8/erai/netcdf/oper_an_sfc/fullres/sub-daily/2000/MSL_6hrs_sfc_2000_10.nc'
     >>> d = datetime.datetime( year=2010, month=1, day=1 )
-    >>> create_filename( 'T', d )
-    '/g/data1/ua8/erai/netcdf/oper_an_pl/fullres/sub-daily/2010/T_6hrs_pl_2010_10.nc'
+    >>> get_filename( 'T', d )
+    '/g/data1/ua8/erai/netcdf/oper_an_pl/fullres/sub-daily/2010/T_6hrs_pl_2010_01.nc'
 
     """
 
+    file_template = '/g/data1/ua8/erai/netcdf/oper_an_{level:}/fullres/sub-daily/{year:4}/{var:}_6hrs_{level:}_{year:4}_{month:02}.nc'
+    assert( var in ['U', 'V', 'T', 'Z', 'Q', 'P'] )
 
+    vals = {
+        'year'  : date.year,
+        'month' : date.month,
+        'level' : 'pl',             # Pressure levels
+        'var'   : var
+    }
+    if var == 'P':
+        vals['level'] = 'sfc'       # Surface
+        vals['var'] = 'MSL'
+
+    return file_template.format(**vals)
+
+def get_varname(var):
+    """(str) -> str
+
+    returns the proper var name for the given var in ['U', 'V', 'T', 'Z', 'Q', 'P']
+
+    >>> get_varname('U')
+    'U_GDS0_ISBL'
+    >>> get_varname('V')
+    'V_GDS0_ISBL'
+    >>> get_varname('T')
+    'T_GDS0_ISBL'
+    >>> get_varname('Z')
+    'Z_GDS0_ISBL'
+    >>> get_varname('Q')
+    'Q_GDS0_ISBL'
+    >>> get_varname('P')
+    'MSL_GDS0_SFC'
+    """
+
+    assert( var in ['U', 'V', 'T', 'Z', 'Q', 'P'] )
+
+    if var == 'P':
+        return 'MSL_GDS0_SFC'
+    else:
+        return '{:1}_GDS0_ISBL'.format(var)
 
 def parse_arguments():
     """(None) -> args
