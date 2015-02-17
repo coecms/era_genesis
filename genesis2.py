@@ -21,6 +21,34 @@ except:
     module load python pythonlib/f90nml pythonlib/netCDF4
     """ )
 
+
+def create_filename(var, date):
+    """( str, datetime.datetime ) -> str
+
+    Creates a string pointing to the file that contains the required
+    variable var for the date date.
+
+    >>> d = datetime.datetime( year=2000, month=10, day=5 )
+    >>> create_filename( 'U', d )
+    '/g/data1/ua8/erai/netcdf/oper_an_pl/fullres/sub-daily/2000/U_6hrs_pl_2000_10.nc'
+    >>> create_filename( 'V', d )
+    '/g/data1/ua8/erai/netcdf/oper_an_pl/fullres/sub-daily/2000/V_6hrs_pl_2000_10.nc'
+    >>> create_filename( 'T', d )
+    '/g/data1/ua8/erai/netcdf/oper_an_pl/fullres/sub-daily/2000/T_6hrs_pl_2000_10.nc'
+    >>> create_filename( 'Z', d )
+    '/g/data1/ua8/erai/netcdf/oper_an_pl/fullres/sub-daily/2000/Z_6hrs_pl_2000_10.nc'
+    >>> create_filename( 'Q', d )
+    '/g/data1/ua8/erai/netcdf/oper_an_pl/fullres/sub-daily/2000/Q_6hrs_pl_2000_10.nc'
+    >>> create_filename( 'P', d )
+    '/g/data1/ua8/erai/netcdf/oper_an_sfc/fullres/sub-daily/2000/MSL_6hrs_sfc_2000_10.nc'
+    >>> d = datetime.datetime( year=2010, month=1, day=1 )
+    >>> create_filename( 'T', d )
+    '/g/data1/ua8/erai/netcdf/oper_an_pl/fullres/sub-daily/2010/T_6hrs_pl_2010_10.nc'
+
+    """
+
+
+
 def parse_arguments():
     """(None) -> args
 
@@ -30,7 +58,7 @@ def parse_arguments():
     def cleanup_args(args):
         """(Namelist) -> Namelist
 
-        Converts start- and end time to datetime.datetime, calculates endtime if num is given, 
+        Converts start- and end time to datetime.datetime, calculates endtime if num is given,
         and end_time, if num is given.
 
         """
@@ -84,13 +112,13 @@ def parse_arguments():
     parser = argparse.ArgumentParser(description='Cleans up the template file')
     parser.add_argument('-X', '--lon', help='longitude', type=float, required=True)
     parser.add_argument('-Y', '--lat', help='latitude', type=float, required=True)
-    parser.add_argument('-S', '--start-date', help='start date: YYYYMMDD[HHMM]', 
+    parser.add_argument('-S', '--start-date', help='start date: YYYYMMDD[HHMM]',
                       required=True)
     parser.add_argument('-E', '--end-date', help='end date: YYYYMMDD[HHMM]')
     parser.add_argument('-N', '--num', help='number of times', type=int)
     parser.add_argument('-I', '--intervall', help='intervall: HH[:MM]',
                       default='06:00')
-    parser.add_argument('-t', '--template', metavar='FILE', default='template.scm', 
+    parser.add_argument('-t', '--template', metavar='FILE', default='template.scm',
                       help='Namelist Template')
     parser.add_argument('-o', '--output', metavar='FILE', default='t_out.scm',
                       help='Output Namelist')
@@ -117,7 +145,7 @@ def main():
         doctest.testmod()
         exit()
 
-    if args.debug: 
+    if args.debug:
         for k in args.__dict__:
             print( "{:10}: {}".format(k, args.__dict__[k]) )
 
