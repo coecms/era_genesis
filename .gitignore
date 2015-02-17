@@ -1,3 +1,4 @@
 *.scm
 *.inp
 .ropeproject
+*.pyc
