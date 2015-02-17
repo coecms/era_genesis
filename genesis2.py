@@ -110,10 +110,10 @@ def parse_arguments():
         return args
 
     parser = argparse.ArgumentParser(description='Cleans up the template file')
-    parser.add_argument('-X', '--lon', help='longitude', type=float, required=True)
-    parser.add_argument('-Y', '--lat', help='latitude', type=float, required=True)
-    parser.add_argument('-S', '--start-date', help='start date: YYYYMMDD[HHMM]',
-                      required=True)
+    parser.add_argument('-X', '--lon', help='longitude', type=float) #, required=True)
+    parser.add_argument('-Y', '--lat', help='latitude', type=float) #, required=True)
+    parser.add_argument('-S', '--start-date', help='start date: YYYYMMDD[HHMM]') #,
+#                      required=True)
     parser.add_argument('-E', '--end-date', help='end date: YYYYMMDD[HHMM]')
     parser.add_argument('-N', '--num', help='number of times', type=int)
     parser.add_argument('-I', '--intervall', help='intervall: HH[:MM]',
@@ -135,15 +135,25 @@ def parse_arguments():
     parser.add_argument('-T', '--test', help='run doctest on this module', default=False, action='store_true')
 
     args = parser.parse_args()
+
+    if args.test:
+        import doctest
+        doctest.testmod()
+        exit()
+
+    if (not (args.lon and args.lat and args.start_date and (args.end_date or args.num))):
+        if not args.lon: print( "Need longitude" )
+        if not args.lat: print( "Need latitude" )
+        if not args.start_date: print( "Need start date" )
+        if not (args.end_date or args.num): print ( "Need end date or number" )
+        parser.print_help()
+        exit()
+
     args = cleanup_args(args)
     return args
 
 def main():
     args = parse_arguments()
-    if args.test:
-        import doctest
-        doctest.testmod()
-        exit()
 
     if args.debug:
         for k in args.__dict__:
