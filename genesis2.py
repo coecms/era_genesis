@@ -31,19 +31,16 @@ def read_netcdf_data(var, args):
 
     """
 
-    from genesis_netcdf_helpers import *
+    import genesis_netcdf_helpers as nch
 
     assert( var in ['U', 'V', 'T', 'Z', 'Q', 'P'] )
 
-    files = file_list(var, args)
+    files = nch.file_list(var, args)
 
     if args.debug:
         print( 'files to open for variable {}'.format(var) )
         for f in files:
             print(f)
-
-
-
 
 def parse_arguments():
     """(None) -> args
@@ -159,10 +156,5 @@ def main():
 
     read_netcdf_data('U', args)
 
-
-
-
 if __name__ == '__main__':
-    import doctest
-    doctest.testmod()
-#    main()
+    main()
