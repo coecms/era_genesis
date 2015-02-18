@@ -111,6 +111,10 @@ def parse_arguments():
     parser.add_argument('-N', '--num', help='number of times', type=int)
 #    parser.add_argument('-I', '--intervall', help='intervall: HH[:MM]',
 #                      default='06:00')
+    parser.add_argument('--lon-range', help='longitude range (default: 3 degrees)', type=float,
+                        default=3.0)
+    parser.add_argument('--lat-range', help='latitude range (default: 3 degrees)', type=float,
+                        default=3.0)
     parser.add_argument('-t', '--template', metavar='FILE', default='template.scm',
                       help='Namelist Template')
     parser.add_argument('-o', '--output', metavar='FILE', default='t_out.scm',
