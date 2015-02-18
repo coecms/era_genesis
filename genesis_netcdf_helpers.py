@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import datetime
+import netCDF4 as cdf
 
 class dummyargs(object):
     start_date = datetime.datetime(2000, 1, 1, 0, 0)
@@ -192,6 +193,54 @@ def get_time_name(var):
     assert( var in ['U', 'V', 'T', 'Z', 'Q', 'P'] )
     return 'initial_time0_hours'
 
+def get_ht_name(var):
+    """ (str) -> str
+
+    Returns the name of the height dimension for variable var.
+    Returns empty string for 'P' because 'P' is a 2D field.
+
+    >>> get_ht_name('U')
+    'lv_ISBL1'
+    >>> get_ht_name('V')
+    'lv_ISBL1'
+    >>> get_ht_name('T')
+    'lv_ISBL1'
+    >>> get_ht_name('Z')
+    'lv_ISBL1'
+    >>> get_ht_name('Q')
+    'lv_ISBL1'
+    >>> get_ht_name('P')
+    ''
+    """
+    assert (var in ['U', 'V', 'T', 'Z', 'Q', 'P'])
+    if var == 'P': return ''
+    return 'lv_ISBL1'
+
+
+def get_dimension_lengths(file_name):
+    """(str) -> dict of str->int
+
+    Returns a dictionary with dimension names as keys and the dimension sizes as values
+
+    """
+
+    return_dict = {}
+
+    dataset = cdf.Dataset( file_name, 'r' )
+    dimensions = dataset.dimensions
+    for dim in dimensions:
+        return_dict[ dim ] = len(dimensions[dim])
+    dataset.close()
+
+    return return_dict
+
+
+
+
+
+
+
 if __name__ == '__main__':
     import doctest
     doctest.testmod()
+
