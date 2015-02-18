@@ -6,9 +6,41 @@
 import numpy as np
 import datetime
 
+def find_nearest_indices(array, val):
+    """( numpy array, val) -> list of int
 
-def find_fractions(array, val):
-    """( numpy array, str ) -> list of int
+    Returns a list of the indices of the array values nearest to value val.
+    If val is in array, it returns a list with this id and the next, otherwise
+    it returns a list with two indices, the one preceeding and following.
+
+    Prerequisite: array[0] <= val < array[-1]
+
+    >>> find_nearest_indices( np.arange(4), 0.7 )
+    [0, 1]
+    >>> find_nearest_indices( np.arange(4), 2 )
+    [2, 3]
+    >>> find_nearest_indices( np.arange(-3, 4), 1.2 )
+    [4, 5]
+    """
+
+    assert( array[0] <= val )
+    assert( val < array[-1])
+
+    idx = np.abs(array-val).argmin()
+
+    if array[idx] > val:
+        return [idx-1, idx]
+    else:
+        return [idx, idx+1]
+
+def find_fractions(array, val, idxs = None):
+    """( numpy array, str ) -> numpy array
+
+    Returns an array of fractions that can be used for a linear interpolation.
+    If idxs is a list or tuple with length 2, then its values are used as the
+    indices of array over which to interpolate.
+
+    Otherwise, idxs is calculated with find_nearest_indices.
 
     >>> find_fractions(np.linspace(-3, 3, 7), 0.5)
     array([ 0. ,  0. ,  0. ,  0.5,  0.5,  0. ,  0. ])
@@ -18,24 +50,22 @@ def find_fractions(array, val):
     array([ 0.,  0.,  0.,  0.,  0.,  1.,  0.])
     >>> find_fractions(np.arange(4, dtype=float), 0.5)
     array([ 0.5,  0.5,  0. ,  0. ])
+    >>> find_fractions(np.arange(4, dtype=float), 2., [1, 3])
+    array([ 0. ,  0.5,  0. ,  0.5])
     """
 
     return_array = np.zeros_like(array)
 
-    idx = np.abs(array - val).argmin()
-    if array[idx] == val:
-        return_array[idx] = 1.0
+    if type(idxs) in [list, tuple] and len(idxs) == 2:
+        left = idxs[0]
+        right = idxs[1]
     else:
-        if array[idx] < val:
-            left = idx
-            right = idx+1
-        else:
-            right = idx
-            left = idx-1
-        left_frac = (array[right] - val)/(array[right]-array[left])
-        right_frac = 1.0 - left_frac
-        return_array[left] = left_frac
-        return_array[right] = right_frac
+        left, right = find_nearest_indices( array, val )
+
+    left_frac = (array[right] - val)/(array[right]-array[left])
+    right_frac = 1.0 - left_frac
+    return_array[left] = left_frac
+    return_array[right] = right_frac
 
     return return_array
 
