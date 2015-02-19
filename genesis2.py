@@ -132,8 +132,8 @@ def parse_arguments():
                       help='Convert Relative to Specific Humidity')
     parser.add_argument('-M', '--hPa', default=False, action='store_true',
                       help='Convert surface pressure from hPa to Pa')
-    parser.add_argument('-D', '--date', default='dates.dat', metavar='FILE',
-                      help='User Date file')
+#    parser.add_argument('-D', '--date', default='dates.dat', metavar='FILE',
+#                      help='User Date file')
     parser.add_argument('-O', '--offset', metavar='FILE',
                       help='User Offset File')
     parser.add_argument('-d', '--debug', default=False, action='store_true',
