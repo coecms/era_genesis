@@ -4,6 +4,7 @@
 import argparse
 import numpy as np
 import datetime
+
 try:
     import f90nml
 except:
@@ -41,6 +42,9 @@ def read_netcdf_data(var, args):
         print( 'files to open for variable {}'.format(var) )
         for f in files:
             print(f)
+
+
+
 
 def parse_arguments():
     """(None) -> args
@@ -99,6 +103,11 @@ def parse_arguments():
                 args.end_date = (args.num - 1) * args.intervall + args.start_date
             else:
                 raise ValueError( "Need either end date or num")
+        if args.lat < -90. or args.lat > 90.:
+            raise ValueError( "Latitude out of bounds: {}".format(args.lat))
+        if args.lon < 0. or args.lon > 360.:
+            raise ValueError( "Longitude out of bounds: {}".format(args.lon))
+
 
         return args
 
@@ -111,9 +120,9 @@ def parse_arguments():
     parser.add_argument('-N', '--num', help='number of times', type=int)
 #    parser.add_argument('-I', '--intervall', help='intervall: HH[:MM]',
 #                      default='06:00')
-    parser.add_argument('--lon-range', help='longitude range (default: 3 degrees)', type=float,
+    parser.add_argument('--lon-range', help='longitude range -- not implemented', type=float,
                         default=3.0)
-    parser.add_argument('--lat-range', help='latitude range (default: 3 degrees)', type=float,
+    parser.add_argument('--lat-range', help='latitude range -- not implemented', type=float,
                         default=3.0)
     parser.add_argument('-t', '--template', metavar='FILE', default='template.scm',
                       help='Namelist Template')
