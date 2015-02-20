@@ -13,23 +13,28 @@ def find_nearest_indices(array, val):
     If val is in array, it returns a list with this id and the next, otherwise
     it returns a list with two indices, the one preceeding and following.
 
-    Prerequisite: array[0] <= val < array[-1]
+    Prerequisite: array[0] <= val < array[-1] or array[-1] <= val < array[0]
 
     >>> find_nearest_indices( np.arange(4), 0.7 )
-    [0, 1]
+    [1, 0]
     >>> find_nearest_indices( np.arange(4), 2 )
     [2, 3]
     >>> find_nearest_indices( np.arange(-3, 4), 1.2 )
     [4, 5]
     """
 
-    assert( array[0] <= val )
-    assert( val < array[-1])
+    ascending = ( array[0] < array[-1] )
+    if ascending:
+        assert( array[0] <= val )
+        assert( val < array[-1])
+    else:
+        assert( array[0] > val )
+        assert( val >= array[-1])
 
     idx = np.abs(array-val).argmin()
 
-    if array[idx] > val:
-        return [idx-1, idx]
+    if ascending == (array[idx] > val):
+        return [idx, idx-1]
     else:
         return [idx, idx+1]
 
@@ -113,6 +118,30 @@ def get_interpolation_array( lon_array, lon, lat_array, lat ):
     return_array[:,:] *= find_fractions_array( 1.0 * lat_array, lat)[np.newaxis, :]
 
     return return_array
+
+def create_dates_list(args):
+    """(Namelist) -> list of datetime
+
+    >>> class a(object):
+    ...     start_date = datetime.datetime(2010, 1, 1)
+    ...     end_date = datetime.datetime(2010, 1, 2, 6)
+    ...     intervall = datetime.timedelta(hours=6)
+    >>> args = a()
+    >>> for d in create_dates_list(args):
+    ...     print( d )
+    2010-01-01 00:00:00
+    2010-01-01 06:00:00
+    2010-01-01 12:00:00
+    2010-01-01 18:00:00
+    2010-01-02 00:00:00
+    2010-01-02 06:00:00
+    """
+    date = args.start_date
+    return_list = [date]
+    while date < args.end_date:
+        date += args.intervall
+        return_list.append(date)
+    return return_list
 
 
 if __name__ == '__main__':
