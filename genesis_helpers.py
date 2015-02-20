@@ -33,7 +33,28 @@ def find_nearest_indices(array, val):
     else:
         return [idx, idx+1]
 
-def find_fractions(array, val, idxs = None):
+def find_fractions( target, val1, val2 ):
+    """(scalar, scalar, scalar) -> list of float
+
+    Interpolates values val1 and val2 and returns a list of two floats
+    so that target = val1 * find_fraction[0] + val2 * find_fraction[1]
+
+    >>> find_fractions( 1.5, 1., 2. )
+    [0.5, 0.5]
+    >>> find_fractions( 1, 1, 2 )
+    [1.0, 0.0]
+    >>> find_fractions( -3, -1, -3 )
+    [0.0, 1.0]
+    >>> find_fractions( 0.25, 0., 1. )
+    [0.75, 0.25]
+    >>> find_fractions( 3, 0, 4 )
+    [0.25, 0.75]
+    """
+
+    frac = float(target - val2) / float(val1 - val2)
+    return [frac, 1.-frac]
+
+def find_fractions_array(array, val, idxs = None):
     """( numpy array, str ) -> numpy array
 
     Returns an array of fractions that can be used for a linear interpolation.
@@ -42,15 +63,15 @@ def find_fractions(array, val, idxs = None):
 
     Otherwise, idxs is calculated with find_nearest_indices.
 
-    >>> find_fractions(np.linspace(-3, 3, 7), 0.5)
+    >>> find_fractions_array(np.linspace(-3, 3, 7), 0.5)
     array([ 0. ,  0. ,  0. ,  0.5,  0.5,  0. ,  0. ])
-    >>> find_fractions(np.linspace(-3, 3, 7), -2.7)
+    >>> find_fractions_array(np.linspace(-3, 3, 7), -2.7)
     array([ 0.7,  0.3,  0. ,  0. ,  0. ,  0. ,  0. ])
-    >>> find_fractions(np.linspace(-3, 3, 7), 2.)
+    >>> find_fractions_array(np.linspace(-3, 3, 7), 2.)
     array([ 0.,  0.,  0.,  0.,  0.,  1.,  0.])
-    >>> find_fractions(np.arange(4, dtype=float), 0.5)
+    >>> find_fractions_array(np.arange(4, dtype=float), 0.5)
     array([ 0.5,  0.5,  0. ,  0. ])
-    >>> find_fractions(np.arange(4, dtype=float), 2., [1, 3])
+    >>> find_fractions_array(np.arange(4, dtype=float), 2., [1, 3])
     array([ 0. ,  0.5,  0. ,  0.5])
     """
 
@@ -62,8 +83,7 @@ def find_fractions(array, val, idxs = None):
     else:
         left, right = find_nearest_indices( array, val )
 
-    left_frac = (array[right] - val)/(array[right]-array[left])
-    right_frac = 1.0 - left_frac
+    left_frac, right_frac = find_fractions(val, array[left], array[right])
     return_array[left] = left_frac
     return_array[right] = right_frac
 
@@ -89,8 +109,8 @@ def get_interpolation_array( lon_array, lon, lat_array, lat ):
 
     return_array = np.zeros((len(lon_array), len(lat_array)), dtype=float)
 
-    return_array[:,:] = find_fractions( 1.0 * lon_array, lon)[:, np.newaxis]
-    return_array[:,:] *= find_fractions( 1.0 * lat_array, lat)[np.newaxis, :]
+    return_array[:,:] = find_fractions_array( 1.0 * lon_array, lon)[:, np.newaxis]
+    return_array[:,:] *= find_fractions_array( 1.0 * lat_array, lat)[np.newaxis, :]
 
     return return_array
 
