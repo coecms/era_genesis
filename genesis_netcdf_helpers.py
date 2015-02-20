@@ -292,7 +292,7 @@ def read_array( file_handle, var_name, shape = None):
     array([10, 20, 30, 50], dtype=int32)
     """
 
-    ncid, opened_here = genensis_open_netCDF( file_handle )
+    ncid, opened_here = genesis_open_netCDF( file_handle )
 
     if shape:
         return_array = ncid.variables[var_name][shape]
