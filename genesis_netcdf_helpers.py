@@ -217,6 +217,16 @@ def get_ht_name(var):
     if var == 'P': return ''
     return 'lv_ISBL1'
 
+def genesis_open_netCDF( file_handle ):
+    if type(file_handle) == str:
+        return cdf.Dataset( file_handle, 'r' ), True
+    elif type(file_handle) == cdf.Dataset:
+        return file_handle, False
+    raise ValueError( "File Handle must be string or Dataset" )
+
+def genesis_close_netCDF( file_handle, opened ):
+    if opened:
+        file_handle.close()
 
 def get_dimension_lengths(file_name):
     """(str) -> dict of str->int
@@ -253,25 +263,16 @@ def get_shape(file_handle, var_name):
     >>> ncid.close()
     """
 
-    if type(file_handle) == str:
-        file_opened_here = True
-        ncid = cdf.Dataset(file_handle, 'r')
-    elif type(file_handle) == cdf.Dataset:
-        file_opened_here = False
-        ncid = file_handle
-    else: raise ValueError( "file_handle needs to be either a netCDF file handle or a file name" )
+    ncid, opened_here = genesis_open_netCDF( file_handle )
     variable = ncid.variables[ var_name ]
     shape = []
     names = []
     for d in variable.dimensions:
         names.append( d )
         shape.append(len(ncid.dimensions[d]))
-
-    if file_opened_here:
-        ncid.close()
+    genesis_close_netCDF( ncid, opened_here )
 
     return shape, names
-
 
 def read_array( file_handle, var_name, shape = None):
     """ (str or Dataset, str) -> ndarray
@@ -291,21 +292,14 @@ def read_array( file_handle, var_name, shape = None):
     array([10, 20, 30, 50], dtype=int32)
     """
 
-    if type(file_handle) == str:
-        opened_here = True
-        ncid = cdf.Dataset(file_handle, 'r')
-    elif type(file_handle) == cdf.Dataset:
-        opened_here = False
-        ncid = file_handle
-    else: raise ValueError( "file_handle needs to be string or Dataset" )
+    ncid, opened_here = genensis_open_netCDF( file_handle )
 
     if shape:
         return_array = ncid.variables[var_name][shape]
     else:
         return_array = ncid.variables[var_name][...]
 
-    if opened_here:
-        ncid.close()
+    genesis_close_netCDF( ncid, opened_here )
 
     return return_array
 
