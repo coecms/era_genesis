@@ -33,6 +33,7 @@ def read_netcdf_data(var, args):
     """
 
     import genesis_netcdf_helpers as nch
+    import genesis_helpers as h
 
     assert( var in ['U', 'V', 'T', 'Z', 'Q', 'P'] )
 
@@ -42,6 +43,80 @@ def read_netcdf_data(var, args):
         print( 'files to open for variable {}'.format(var) )
         for f in files:
             print(f)
+
+    ncid, opened_here = nch.genesis_open_netCDF(files[0])
+
+    lat_array = nch.read_array(ncid, nch.get_lat_name(var))
+    lat_idxs = h.find_nearest_indices( lat_array, args.lat )
+    if args.debug:
+        print( "Lat array grid points: {},  indices: {}".format(lat_array[lat_idxs], lat_idxs))
+
+    lon_array = nch.read_array(ncid, nch.get_lon_name(var))
+    lon_idxs = h.find_nearest_indices( lon_array, args.lon )
+    if args.debug:
+        print( "Lon array grid points: {},  indices: {}".format(lon_array[lon_idxs], lon_idxs))
+
+    nch.genesis_close_netCDF( ncid, opened_here )
+
+    first_file = True
+    for f in files:
+        ncid, opened_here = nch.genesis_open_netCDF( f )
+        shape, dims = nch.get_shape( ncid, nch.get_varname(var) )
+        for i in range(len(dims)):
+            if dims[i] == nch.get_lat_name(var):
+                shape[i] = lat_idxs
+                if first_file:
+                    lat_axis = i
+                else:
+                    if lat_axis != i:
+                        raise IndexError( "NetCDF files are not consistent" )
+            elif dims[i] == nch.get_lon_name(var):
+                shape[i] = lon_idxs
+                if first_file:
+                    lon_axis = i
+                else:
+                    if lon_axis != i:
+                        raise IndexError( "NetCDF files are not consistent" )
+            elif dims[i] == nch.get_time_name(var):
+                times_var = ncid.variables[nch.get_time_name(var)]
+                times = cdf.num2date( times_var[:], units=times_var.units )
+                try:
+                    start_idx = np.where( times == args.start_date )[0][0]
+                except IndexError:
+                    start_idx = 0
+                try:
+                    end_idx = np.where( times == args.end_date )[0][0]
+                except IndexError:
+                    end_idx = len(times)
+                shape[i] = list(range(start_idx, end_idx+1))
+                if first_file:
+                    time_axis = i
+                else:
+                    if time_axis != i:
+                        raise IndexError( "NetCDF files are not consistent" )
+            else:
+                if dims[i] == nch.get_ht_name( var ):
+                    if first_file:
+                        ht_axis = i
+                    else:
+                        if ht_axis != i:
+                            raise IndexError( "NetCDF files are not consistent" )
+                shape[i] = list(range(shape[i]))
+        try:
+            this_data = nch.read_array( ncid, nch.get_varname(var), shape )
+        except Exception as e :
+            print( shape )
+            raise e
+        if first_file:
+            data_array = this_data
+        else:
+            data_array = np.concatenate( (data_array, this_data), axis=time_axis )
+        nch.genesis_close_netCDF( ncid, opened_here )
+        first_file = False
+    if args.debug:
+        print( 'shape of read data for variable {}: {}'.format(var, data_array.shape ))
+
+
 
 
 
