@@ -273,7 +273,7 @@ def get_shape(file_handle, var_name):
     return shape, names
 
 
-def read_array( file_handle, var_name ):
+def read_array( file_handle, var_name, shape = None):
     """ (str or Dataset, str) -> ndarray
 
     Returns all data from the netCDF file file_handle with the variable name var_name.
@@ -287,6 +287,8 @@ def read_array( file_handle, var_name ):
             125,  150,  175,  200,  225,  250,  300,  350,  400,  450,  500,
             550,  600,  650,  700,  750,  775,  800,  825,  850,  875,  900,
             925,  950,  975, 1000], dtype=int32)
+    >>> read_array( file_name, var_name, [[5, 6, 7, 8]] )
+    array([10, 20, 30, 50], dtype=int32)
     """
 
     if type(file_handle) == str:
@@ -297,7 +299,11 @@ def read_array( file_handle, var_name ):
         ncid = file_handle
     else: raise ValueError( "file_handle needs to be string or Dataset" )
 
-    return_array = ncid.variables[var_name][...]
+    if shape:
+        return_array = ncid.variables[var_name][shape]
+    else:
+        return_array = ncid.variables[var_name][...]
+
     if opened_here:
         ncid.close()
 
