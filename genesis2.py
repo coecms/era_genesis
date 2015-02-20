@@ -115,6 +115,15 @@ def read_netcdf_data(var, args):
         first_file = False
     if args.debug:
         print( 'shape of read data for variable {}: {}'.format(var, data_array.shape ))
+    return data_array
+
+def read_all_data(args):
+
+    variables = {}
+    for var in ['U', 'V', 'T', 'Z', 'Q', 'P']:
+        variables[var] = read_netcdf_data( var, args )
+
+
 
 
 
@@ -242,7 +251,7 @@ def main():
         for k in args.__dict__:
             print( "{:10}: {}".format(k, args.__dict__[k]) )
 
-    read_netcdf_data('U', args)
+    read_all_data(args)
 
 if __name__ == '__main__':
     main()
