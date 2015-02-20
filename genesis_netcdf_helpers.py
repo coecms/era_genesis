@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import datetime
+import numpy as np
 import netCDF4 as cdf
 
 class dummyargs(object):
@@ -234,6 +235,73 @@ def get_dimension_lengths(file_name):
 
     return return_dict
 
+
+def get_shape(file_handle, var_name):
+    """ (str, str) -> tuple of (list of int, list of str)
+
+    Returns the shape of the variable var_name in the file file_name, and a list of dimension names.
+    file_handle can be a string pointing to a netCDF source, or a netcdf Dataset. If it is a Dataset,
+    it will remain open.
+
+    >>> file_name = get_filename('U', datetime.datetime(2010, 1, 1))
+    >>> var_name = get_varname('U')
+    >>> get_shape(file_name, var_name)
+    ([124, 37, 241, 480], [u'initial_time0_hours', u'lv_ISBL1', u'g0_lat_2', u'g0_lon_3'])
+    >>> ncid = cdf.Dataset(file_name, 'r')
+    >>> get_shape(ncid, var_name)
+    ([124, 37, 241, 480], [u'initial_time0_hours', u'lv_ISBL1', u'g0_lat_2', u'g0_lon_3'])
+    >>> ncid.close()
+    """
+
+    if type(file_handle) == str:
+        file_opened_here = True
+        ncid = cdf.Dataset(file_handle, 'r')
+    elif type(file_handle) == cdf.Dataset:
+        file_opened_here = False
+        ncid = file_handle
+    else: raise ValueError( "file_handle needs to be either a netCDF file handle or a file name" )
+    variable = ncid.variables[ var_name ]
+    shape = []
+    names = []
+    for d in variable.dimensions:
+        names.append( d )
+        shape.append(len(ncid.dimensions[d]))
+
+    if file_opened_here:
+        ncid.close()
+
+    return shape, names
+
+
+def read_array( file_handle, var_name ):
+    """ (str or Dataset, str) -> ndarray
+
+    Returns all data from the netCDF file file_handle with the variable name var_name.
+    file_handle can be a string containing the file name, or it can be a netCDF dataset.
+    If it contains the file name, it will be opened, read, and closed, otherwise it will remain open.
+
+    >>> file_name = get_filename('U', datetime.datetime(2000, 1, 1))
+    >>> var_name = get_ht_name('U')
+    >>> read_array( file_name, var_name )
+    array([   1,    2,    3,    5,    7,   10,   20,   30,   50,   70,  100,
+            125,  150,  175,  200,  225,  250,  300,  350,  400,  450,  500,
+            550,  600,  650,  700,  750,  775,  800,  825,  850,  875,  900,
+            925,  950,  975, 1000], dtype=int32)
+    """
+
+    if type(file_handle) == str:
+        opened_here = True
+        ncid = cdf.Dataset(file_handle, 'r')
+    elif type(file_handle) == cdf.Dataset:
+        opened_here = False
+        ncid = file_handle
+    else: raise ValueError( "file_handle needs to be string or Dataset" )
+
+    return_array = ncid.variables[var_name][...]
+    if opened_here:
+        ncid.close()
+
+    return return_array
 
 
 
