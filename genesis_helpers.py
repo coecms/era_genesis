@@ -143,6 +143,30 @@ def create_dates_list(args):
         return_list.append(date)
     return return_list
 
+def convert_to_datetime( date, hour ):
+    """( str, str ) or (str, int) or (int, int) -> datetime.datetime
+
+    returns a datetime object with the date set to what date represents, and the time
+    to hour.
+
+    >>> convert_to_datetime( '20000101', '0' )
+    datetime.datetime(2000, 1, 1, 0, 0)
+    >>> convert_to_datetime( '20100331', '6' )
+    datetime.datetime(2010, 3, 31, 6, 0)
+    >>> convert_to_datetime( '19671129', 18 )
+    datetime.datetime(1967, 11, 29, 18, 0)
+    >>> convert_to_datetime( 19760121, 12 )
+    datetime.datetime(1976, 1, 21, 12, 0)
+    """
+
+    if type(date) == int:
+        date = str( date )
+    if type(hour) == str:
+        hour = int(hour)
+
+    day = datetime.datetime.strptime(date, '%Y%m%d')
+
+    return day.replace(hour=hour)
 
 if __name__ == '__main__':
     import doctest
