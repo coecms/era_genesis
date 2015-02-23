@@ -53,7 +53,7 @@ def read_netcdf_data(var, idxs, args):
         idxs_to_read = [1, 1, 1, 1]
     for f, time_idxs in zip(files, idxs['time']['idxs_list']):
         ncid, opened_here = nch.genesis_open_netCDF( f )
-        shape, dims = nch.get_shape( ncid, nch.get_varname(var) )
+        shape, dims = nch.get_shape( ncid, var )
         for i in range(len(dims)):
             if dims[i] == nch.get_lat_name(var):
                 idxs_to_read[i] = idxs['lat']['idxs']
@@ -95,6 +95,10 @@ def read_netcdf_data(var, idxs, args):
             data_array = np.concatenate( (data_array, this_data), axis=time_axis )
         nch.genesis_close_netCDF( ncid, opened_here )
         first_file = False
+    if var == 'P':
+        p_shape = list(data_array.shape)
+        p_shape.insert( idxs['dims'].index('ht'), 1 )
+        data_array = data_array.reshape(p_shape)
     if args.debug:
         print( 'shape of read data for variable {}: {}'.format(var, data_array.shape ))
     return data_array

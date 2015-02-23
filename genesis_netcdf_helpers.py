@@ -268,7 +268,7 @@ def get_shape(file_handle, var_name):
     """
 
     ncid, opened_here = genesis_open_netCDF( file_handle )
-    variable = ncid.variables[ var_name ]
+    variable = ncid.variables[ get_varname(var_name) ]
     shape = []
     names = []
     for d in variable.dimensions:
@@ -322,13 +322,22 @@ def get_indices( args ):
         'lat' : {},
         'lon' : {},
         'ht' : {},
-        'time' : {}
+        'time' : {},
+        'dims' : []
     }
 
     # First, open the first file to get the best values for lat, lon, and time
     ncid, opened_here = genesis_open_netCDF( get_filename( dummy_var, args.start_date ))
 
     dim_lengths = get_dimension_lengths( ncid )
+
+    # Get the shape and dimnames
+    shape, dimnames = get_shape( ncid, dummy_var )
+
+    dimnames[dimnames.index( get_lat_name( dummy_var ))] = 'lat'
+    dimnames[dimnames.index( get_lon_name( dummy_var ))] = 'lon'
+    dimnames[dimnames.index(  get_ht_name( dummy_var ))] = 'ht'
+    dimnames[dimnames.index(get_time_name( dummy_var ))] = 'time'
 
     # Get the height indices: All of them
     ht_idxs = list(range(dim_lengths[get_ht_name(dummy_var)]))
@@ -401,6 +410,7 @@ def get_indices( args ):
         'idxs_list' : times_idxs,
         'vals_list' : times_vals
     }
+    return_dict['dims'] = dimnames
 
     return return_dict
 
