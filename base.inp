@@ -43,7 +43,7 @@
     ichgf = .true.
 /
 &usrfields_3
-    namelist_template = '/short/w35/hxw599/scm/data2/template.scm'
+    namelist_template = './template.scm'
 /
 &time
     sdate = 20040225
