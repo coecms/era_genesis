@@ -4,6 +4,8 @@ import datetime
 import numpy as np
 import netCDF4 as cdf
 
+all_vars = ['U', 'V', 'T', 'Z', 'Q', 'P']
+
 class dummyargs(object):
     start_date = datetime.datetime(2000, 1, 1, 0, 0)
     end_date = datetime.datetime(2001, 2, 1, 0, 0)
@@ -30,6 +32,7 @@ def next_month(month):
     """
     if month.month == 12: return datetime.datetime(month.year+1, 1, 1)
     return datetime.datetime(month.year, month.month+1, 1)
+
 def file_list(var, args):
     """(str, Namelist) -> list of str
 
@@ -228,7 +231,7 @@ def genesis_close_netCDF( file_handle, opened ):
     if opened:
         file_handle.close()
 
-def get_dimension_lengths(file_name):
+def get_dimension_lengths(file_handle):
     """(str) -> dict of str->int
 
     Returns a dictionary with dimension names as keys and the dimension sizes as values
@@ -237,11 +240,12 @@ def get_dimension_lengths(file_name):
 
     return_dict = {}
 
-    dataset = cdf.Dataset( file_name, 'r' )
+    dataset, opened_here = genesis_open_netCDF( file_name )
     dimensions = dataset.dimensions
     for dim in dimensions:
         return_dict[ dim ] = len(dimensions[dim])
-    dataset.close()
+
+    genesis_close_netCDF( dataset, opened_here )
 
     return return_dict
 
@@ -302,6 +306,101 @@ def read_array( file_handle, var_name, shape = None):
     genesis_close_netCDF( ncid, opened_here )
 
     return return_array
+
+def get_indices( args ):
+    """ (Namelist, str) -> dict
+
+    Returns a dictionary which describe the indices that need to be read.
+
+    """
+
+    dummy_var = 'U'
+
+    return_dict = {
+        'lat' : {}
+        'lon' : {}
+        'ht' : {}
+        'time' : {}
+    }
+
+    # First, open the first file to get the best values for lat, lon, and time
+    ncid, opened_here = genesis_open_netCDF( get_filename( dummy_var, args.start_date ))
+
+    dim_lengths = get_dimension_lengths( ncid )
+
+    # Get the height indices: All of them
+    ht_idxs = list(range(dim_lengths[get_ht_name(dummy_var)]))
+    ht_vals = read_array( ncid, get_ht_name(dummy_var) )
+
+    # Get the latitude indices
+    lat_array = nch.read_array(ncid, nch.get_lat_name(dummy_var))
+    lat_idxs = h.find_nearest_indices( lat_array, args.lat )
+    if args.debug:
+        print( "Lat array grid points: {},  indices: {}".format(lat_array[lat_idxs], lat_idxs))
+    lat_vals = lat_array[lat_idxs]
+
+    # Get the longitude indices
+    long_array = nch.read_array(ncid, nch.get_long_name(dummy_var))
+    long_idxs = h.find_nearest_indices( long_array, args.long )
+    if args.debug:
+        print( "Long array grid points: {},  indices: {}".format(long_array[long_idxs], long_idxs))
+    long_vals = long_array[long_idxs]
+
+    genesis_close_netCDF( ncid, opened_here )
+
+
+    # The time indices is getting harder, because they change from file to file.
+
+    # Get a list of files that encompass all the times:
+
+    files = file_list( dummy_var, args )
+    times_idxs = []
+    times_vals = []
+    for f in files:
+        ncid, opened_here = genesis_open_netCDF( f )
+
+        # Get the variable
+        time_var = ncid.variables[get_time_name( dummy_var )]
+
+        # Convert the time data into a numpy array.
+        times = time_var[:]
+
+        # Covert start and end date into the same format as times
+        s_date = cdf.date2num( args.start_date, units=times_var.units )
+        e_date = cdf.date2num( args.end_date, units=times_var.units )
+
+        # Find the closest location to both start and end date
+        start_idx = np.abs(times_var - s_date).argmin()
+        end_idx = np.abs(times_var - e_date).argmin()
+
+        # Calculate the indices and values for this file
+        t_idxs = list(range(start_idx, end_idx+1))
+        t_vals = times[t_idxs]
+
+        # Append both the indices and values to the total list.
+        times_idxs.append(t_idxs)
+        times_vals.append(t_vals)
+
+        genesis_close_netCDF( ncid, opened_here )
+
+    return_dict['lat'] = {
+        'idxs' : lat_idxs,
+        'vals' : lat_vals
+    }
+    return_dict['lon'] = {
+        'idxs' : long_idxs,
+        'vals' : long_vals
+    }
+    return_dict['ht'] = {
+        'idxs' : ht_idxs,
+        'vals' : ht_vals
+    }
+    return_dict['time'] = {
+        'idxs_list' : times_idxs,
+        'vals_list' : times_vals
+    }
+
+    return return_dict
 
 
 
