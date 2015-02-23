@@ -2,6 +2,7 @@
 
 
 import argparse
+import os
 import numpy as np
 import datetime
 
@@ -136,6 +137,8 @@ def parse_arguments():
     returns the results of parse_args()
     """
 
+    import genesis_helpers as helpers
+
     def cleanup_args(args):
         """(Namelist) -> Namelist
 
@@ -208,6 +211,8 @@ def parse_arguments():
                         default=3.0)
     parser.add_argument('--lat-range', help='latitude range -- not implemented', type=float,
                         default=3.0)
+    parser.add_argument('-b', '--base', metavar='FILE', default='base.inp',
+                      help='Namelist Template')
     parser.add_argument('-t', '--template', metavar='FILE', default='template.scm',
                       help='Namelist Template')
     parser.add_argument('-o', '--output', metavar='FILE', default='t_out.scm',
@@ -231,13 +236,36 @@ def parse_arguments():
         doctest.testmod()
         exit()
 
+    if os.path.isfile(args.base):
+        base = f90nml.read(args.base)
+        base_knows_sdate = 'time' in base.keys() and 'sdate' in base['time'].keys()
+        base_knows_edate = 'time' in base.keys() and 'edate' in base['time'].keys()
+    else:
+        base = None
+
     setattr( args, 'intervall', '06:00')
 
-    if (not (args.lon and args.lat and args.start_date and (args.end_date or args.num))):
-        if not args.lon: print( "Need longitude" )
-        if not args.lat: print( "Need latitude" )
-        if not args.start_date: print( "Need start date" )
-        if not (args.end_date or args.num): print ( "Need end date or number" )
+    stop = False
+    if not args.lon:
+        print( "Need longitude" )
+        stop = True
+    if not args.lat:
+        print( "Need latitude" )
+        stop = True
+    if not args.start_date:
+        if base_knows_sdate:
+            args.start_date = '{:08}{:02}'.format(base['time']['sdate'], base['time']['shour'])
+        else:
+            print( "Need start date" )
+            stop = True
+    if not (args.end_date or args.num):
+        if base_knows_edate:
+            args.end_date = '{:08}{:02}'.format(base['time']['edate'], base['time']['ehour'])
+        else:
+            print ( "Need end date or number" )
+            stop = True
+
+    if stop:
         parser.print_help()
         exit()
 
