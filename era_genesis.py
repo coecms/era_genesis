@@ -123,6 +123,7 @@ def read_all_data(args):
     variables = {}
     for var in ['U', 'V', 'T', 'Z', 'Q', 'P']:
         variables[var] = read_netcdf_data( var, args )
+    return variables
 
 
 
@@ -175,12 +176,14 @@ def cleanup_args(args, base):
         stop = True
     if not args.start_date:
         if base_knows_sdate:
+            if args.debug: print(" No Start Date given in arguments, reading from base config file ")
             args.start_date = '{:08}{:02}'.format(base['time']['sdate'], base['time']['shour'])
         else:
             print( "Need start date" )
             stop = True
     if not (args.end_date or args.num):
         if base_knows_edate:
+            if args.debug: print(" No End Date given in arguments, reading from base config file ")
             args.end_date = '{:08}{:02}'.format(base['time']['edate'], base['time']['ehour'])
         else:
             print ( "Need end date or number" )
@@ -216,7 +219,6 @@ def cleanup_args(args, base):
 
 
     return args
-
 
 def parse_arguments():
     """(None) -> args
@@ -276,11 +278,12 @@ def main():
     # Read the base configuration file
     if os.path.isfile(args.base):
         base = f90nml.read(args.base)
-
     else:
         print( "Base configuration file not found: {}".format(args.base) )
         exit(1)
 
+    # Convert the start_date and end_date to datetime format, plus read them in
+    # in case there isn't anything given.
     args = cleanup_args(args, base)
 
     if args.debug:
