@@ -240,7 +240,7 @@ def get_dimension_lengths(file_handle):
 
     return_dict = {}
 
-    dataset, opened_here = genesis_open_netCDF( file_name )
+    dataset, opened_here = genesis_open_netCDF( file_handle )
     dimensions = dataset.dimensions
     for dim in dimensions:
         return_dict[ dim ] = len(dimensions[dim])
@@ -314,12 +314,14 @@ def get_indices( args ):
 
     """
 
+    import genesis_helpers as h
+
     dummy_var = 'U'
 
     return_dict = {
-        'lat' : {}
-        'lon' : {}
-        'ht' : {}
+        'lat' : {},
+        'lon' : {},
+        'ht' : {},
         'time' : {}
     }
 
@@ -333,15 +335,15 @@ def get_indices( args ):
     ht_vals = read_array( ncid, get_ht_name(dummy_var) )
 
     # Get the latitude indices
-    lat_array = nch.read_array(ncid, nch.get_lat_name(dummy_var))
+    lat_array = read_array(ncid, get_lat_name(dummy_var))
     lat_idxs = h.find_nearest_indices( lat_array, args.lat )
     if args.debug:
         print( "Lat array grid points: {},  indices: {}".format(lat_array[lat_idxs], lat_idxs))
     lat_vals = lat_array[lat_idxs]
 
     # Get the longitude indices
-    long_array = nch.read_array(ncid, nch.get_long_name(dummy_var))
-    long_idxs = h.find_nearest_indices( long_array, args.long )
+    long_array = read_array(ncid, get_lon_name(dummy_var))
+    long_idxs = h.find_nearest_indices( long_array, args.lon )
     if args.debug:
         print( "Long array grid points: {},  indices: {}".format(long_array[long_idxs], long_idxs))
     long_vals = long_array[long_idxs]
@@ -366,12 +368,12 @@ def get_indices( args ):
         times = time_var[:]
 
         # Covert start and end date into the same format as times
-        s_date = cdf.date2num( args.start_date, units=times_var.units )
-        e_date = cdf.date2num( args.end_date, units=times_var.units )
+        s_date = cdf.date2num( args.start_date, units=time_var.units )
+        e_date = cdf.date2num( args.end_date, units=time_var.units )
 
         # Find the closest location to both start and end date
-        start_idx = np.abs(times_var - s_date).argmin()
-        end_idx = np.abs(times_var - e_date).argmin()
+        start_idx = np.abs(times - s_date).argmin()
+        end_idx = np.abs(times - e_date).argmin()
 
         # Calculate the indices and values for this file
         t_idxs = list(range(start_idx, end_idx+1))

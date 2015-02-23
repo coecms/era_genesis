@@ -5,6 +5,8 @@ import argparse
 import os
 import numpy as np
 import datetime
+import genesis_netcdf_helpers as nch
+import genesis_helpers as h
 
 try:
     import f90nml
@@ -25,16 +27,14 @@ except:
     """ )
 
 
-def read_netcdf_data(var, args):
-    """(str, Namelist) -> np.ndarray
+def read_netcdf_data(var, idxs, args):
+    """(str, dict, Namelist) -> np.ndarray
 
     Returns all data from the ERA-Interim with variable named var in ['U', 'V', 'T', 'Z', 'Q', 'P']
     for all the relevant dates.
 
     """
 
-    import genesis_netcdf_helpers as nch
-    import genesis_helpers as h
 
     assert( var in ['U', 'V', 'T', 'Z', 'Q', 'P'] )
 
@@ -45,51 +45,32 @@ def read_netcdf_data(var, args):
         for f in files:
             print(f)
 
-    ncid, opened_here = nch.genesis_open_netCDF(files[0])
-
-    lat_array = nch.read_array(ncid, nch.get_lat_name(var))
-    lat_idxs = h.find_nearest_indices( lat_array, args.lat )
-    if args.debug:
-        print( "Lat array grid points: {},  indices: {}".format(lat_array[lat_idxs], lat_idxs))
-
-    lon_array = nch.read_array(ncid, nch.get_lon_name(var))
-    lon_idxs = h.find_nearest_indices( lon_array, args.lon )
-    if args.debug:
-        print( "Lon array grid points: {},  indices: {}".format(lon_array[lon_idxs], lon_idxs))
-
-    nch.genesis_close_netCDF( ncid, opened_here )
-
     first_file = True
-    for f in files:
+
+    if var == 'P':
+        idxs_to_read = [1, 1, 1]
+    else:
+        idxs_to_read = [1, 1, 1, 1]
+    for f, time_idxs in zip(files, idxs['time']['idxs_list']):
         ncid, opened_here = nch.genesis_open_netCDF( f )
         shape, dims = nch.get_shape( ncid, nch.get_varname(var) )
         for i in range(len(dims)):
             if dims[i] == nch.get_lat_name(var):
-                shape[i] = lat_idxs
+                idxs_to_read[i] = idxs['lat']['idxs']
                 if first_file:
                     lat_axis = i
                 else:
                     if lat_axis != i:
                         raise IndexError( "NetCDF files are not consistent" )
             elif dims[i] == nch.get_lon_name(var):
-                shape[i] = lon_idxs
+                idxs_to_read[i] = idxs['lon']['idxs']
                 if first_file:
                     lon_axis = i
                 else:
                     if lon_axis != i:
                         raise IndexError( "NetCDF files are not consistent" )
             elif dims[i] == nch.get_time_name(var):
-                times_var = ncid.variables[nch.get_time_name(var)]
-                times = cdf.num2date( times_var[:], units=times_var.units )
-                try:
-                    start_idx = np.where( times == args.start_date )[0][0]
-                except IndexError:
-                    start_idx = 0
-                try:
-                    end_idx = np.where( times == args.end_date )[0][0]
-                except IndexError:
-                    end_idx = len(times)
-                shape[i] = list(range(start_idx, end_idx+1))
+                idxs_to_read[i] = time_idxs
                 if first_file:
                     time_axis = i
                 else:
@@ -102,11 +83,11 @@ def read_netcdf_data(var, args):
                     else:
                         if ht_axis != i:
                             raise IndexError( "NetCDF files are not consistent" )
-                shape[i] = list(range(shape[i]))
+                idxs_to_read[i] = list(range(shape[i]))
         try:
-            this_data = nch.read_array( ncid, nch.get_varname(var), shape )
+            this_data = nch.read_array( ncid, nch.get_varname(var), idxs_to_read )
         except Exception as e :
-            print( shape )
+            print( idxs_to_read )
             raise e
         if first_file:
             data_array = this_data
@@ -118,11 +99,11 @@ def read_netcdf_data(var, args):
         print( 'shape of read data for variable {}: {}'.format(var, data_array.shape ))
     return data_array
 
-def read_all_data(args):
+def read_all_data(args, idxs):
 
     variables = {}
     for var in ['U', 'V', 'T', 'Z', 'Q', 'P']:
-        variables[var] = read_netcdf_data( var, args )
+        variables[var] = read_netcdf_data( var, idxs, args )
     return variables
 
 
@@ -297,7 +278,8 @@ def main():
             for kk in base[k].keys():
               print( '     {:12}: {}'.format(kk, base[k][kk]))
 
-    read_all_data(args)
+    idxs = nch.get_indices( args )
+    read_all_data(args, idxs)
 
 if __name__ == '__main__':
     main()
