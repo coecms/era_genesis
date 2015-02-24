@@ -111,7 +111,59 @@ def read_all_data(args, idxs):
     return variables
 
 def clean_all_vars(args, all_vars, idxs, units):
-    return all_vars
+    """(Namelist, dict of arrays, dict, dict) -> dict of arrays
+
+    Performs several transformations on the datasets:
+
+        1) ensures that the height dimension is in Pascals
+        2) ensures that the surface pressure is in Pascals
+        3) ensures that the height dimension is ascending
+
+    """
+
+    if units['P'] == 'hPa':
+        if args.debug:
+            print("Converting Surface Pressure:")
+            print("Was: {}".format(units['P']))
+            print(all_vars[0, 0, 0])
+        all_vars['P'] = 100.0 * all_vars['P']
+        units['P'] = 'Pa'
+        if args.debug:
+            print("Is now: {}".format(units['P']))
+            print(all_vars[0, 0, 0])
+
+    if units['ht'] == 'hPa':
+        if args.debug:
+            print("Converting Pressure levels:")
+            print("Was: {}".format(units['P']))
+            print(idxs['ht']['vals'])
+        idxs['ht']['vals'] = 100.0 * idxs['ht']['vals']
+        units['ht'] = 'Pa'
+        if args.debug:
+            print("Is now: {}".format(units['P']))
+            print(idxs['ht']['vals'])
+
+    if idxs['ht']['vals'][0] < idxs['ht']['vals'][-1]:
+        if idxs['dims'][1] != 'ht':
+            raise IndexError("At the moment, only know how to invert the second axis, but that isn't height")
+        if args.debug:
+            print("Inverting height levels")
+            print("Was:")
+            print(" levels: {}".format(idxs['ht']['vals']))
+            print(" first U: {}".format(all_vars['U'][0, :, 0, 0]))
+        idxs['ht']['vals'][:] = idxs['ht']['vals'][::-1]
+        idxs['ht']['idxs'][:] = idxs['ht']['idxs'][::-1]
+        for var in ['U', 'V', 'T', 'Z', 'Q']:
+            all_vars[var][:, :, :, :] = all_vars[var][:, ::-1, :, :]
+        if args.debug:
+            print("Is now:")
+            print(" levels: {}".format(idxs['ht']['vals']))
+            print(" first U: {}".format(all_vars['U'][0, :, 0, 0]))
+
+
+
+
+    return all_vars, idxs, units
 
 
 
@@ -212,9 +264,6 @@ def parse_arguments():
     returns the results of parse_args()
     """
 
-    import genesis_helpers as helpers
-
-
     parser = argparse.ArgumentParser(description='Cleans up the template file')
     parser.add_argument('-X', '--lon', help='longitude', type=float) #, required=True)
     parser.add_argument('-Y', '--lat', help='latitude', type=float) #, required=True)
@@ -284,9 +333,19 @@ def main():
               print( '     {:12}: {}'.format(kk, base[k][kk]))
 
     idxs = nch.get_indices( args )
+    if args.debug:
+        print( "indices: " )
+        for k in idxs.keys():
+            print( "     {:10}:{}".format(k, idxs[k]) )
+
     units = nch.get_all_units( args )
-    allvars = nch.read_all_data(args, idxs)
-    allvars = cleanup_allvars(args, allvars, idxs, units)
+    if args.debug:
+        print( "units: " )
+        for k in units.keys():
+            print( "     {:10}:{}".format(k, units[k]) )
+
+    allvars = read_all_data(args, idxs)
+    allvars = clean_all_vars(args, allvars, idxs, units)
 
 if __name__ == '__main__':
     main()
