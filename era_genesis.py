@@ -110,7 +110,8 @@ def read_all_data(args, idxs):
         variables[var] = read_netcdf_data( var, idxs, args )
     return variables
 
-
+def clean_all_vars(args, all_vars, idxs, units):
+    return all_vars
 
 
 
@@ -283,7 +284,9 @@ def main():
               print( '     {:12}: {}'.format(kk, base[k][kk]))
 
     idxs = nch.get_indices( args )
-    read_all_data(args, idxs)
+    units = nch.get_all_units( args )
+    allvars = nch.read_all_data(args, idxs)
+    allvars = cleanup_allvars(args, allvars, idxs, units)
 
 if __name__ == '__main__':
     main()

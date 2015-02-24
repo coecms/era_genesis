@@ -415,7 +415,32 @@ def get_indices( args ):
     return return_dict
 
 
+def get_all_units(args):
+    """ (Namelist) -> dict
 
+    Returns a dictionary that gives the units for the various variables and dimensions.
+
+    """
+
+    return_dict = {}
+
+    for var in all_vars:
+        file_name = get_filename( var, args.start_date )
+        ncid, opened_here = genesis_open_netCDF( file_name )
+
+        if var == all_vars[0]:
+            # for the first variable, we also read out the units for the
+            # dimensions
+            return_dict['lat'] = ncid.variables[get_lat_name(var)].units
+            return_dict['lon'] = ncid.variables[get_lon_name(var)].units
+            return_dict['ht'] = ncid.variables[get_ht_name(var)].units
+            return_dict['time'] = ncid.variables[get_time_name(var)].units
+
+        return_dict[var] = ncid.variables[get_varname(var)].units
+
+        genesis_close_netCDF( ncid, opened_here )
+
+    return return_dict
 
 
 
