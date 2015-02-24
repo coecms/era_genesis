@@ -59,6 +59,44 @@ def find_fractions( target, val1, val2 ):
     frac = float(target - val2) / float(val1 - val2)
     return [frac, 1.-frac]
 
+def radian(angle):
+    """(number) -> float
+
+    returns the radian of the degree angle angle
+
+    >>> radian(0.)
+    0.0
+    >>> radian(180.)
+    3.141592653589793
+    """
+
+    return np.pi * angle / 180.0
+
+def surface_distance_y( lat1, lat2 ):
+    """(number, number) -> float
+
+    Returns the distance between two latitudes.
+
+    >>> surface_distance_y( 0., 1. )
+    111198.76636891312
+    """
+
+    r_earth = 6371220
+    return (np.pi * r_earth) / 180.0 * abs(lat2 - lat1)
+
+def surface_distance_x( lon1, lon2, lat ):
+    """(number, number, number) -> float
+
+    Returns the distance between two longitudes at a certain latitude.
+
+    >>> surface_distance_x( 0., 1., 0. )
+    111198.76636891312
+    >>> surface_distance_x( 0., 1., 80. )
+    19309.463138772513
+    """
+
+    return surface_distance_y( lon1, lon2 ) * np.cos(radian(lat))
+
 def find_fractions_array(array, val, idxs = None):
     """( numpy array, str ) -> numpy array
 
