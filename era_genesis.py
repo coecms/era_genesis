@@ -143,7 +143,7 @@ def clean_all_vars(args, all_vars, idxs, units):
             print("Is now: {}".format(units['P']))
             print(idxs['ht']['vals'])
 
-    if idxs['ht']['vals'][0] < idxs['ht']['vals'][-1]:
+    if idxs['ht']['vals'][0] < idxs['ht']['vals'][-1]:  # Pressure values, so higher value is lower level.
         if idxs['dims'][1] != 'ht':
             raise IndexError("At the moment, only know how to invert the second axis, but that isn't height")
         if args.debug:
@@ -165,7 +165,33 @@ def clean_all_vars(args, all_vars, idxs, units):
 
     return all_vars, idxs, units
 
+def spacially_interpolate( args, read_vars, idxs ):
+    """( Namelist, dict, dict ) -> dict
 
+    Creates a new namelist with spacially interpolated data of args. Adds new fields for temperature and humidity gradients.
+    """
+
+    import genesis_helpers as h
+
+    return_dict = {}
+
+    lon_frac = np.array(h.find_fractions( args.lon, idxs['lon']['vals'][0], idxs['lon']['vals'][1] ))
+    lat_frac = np.array(h.find_fractions( args.lat, idxs['lat']['vals'][0], idxs['lat']['vals'][1] ))
+
+    fracts = lon_frac[np.newaxis, :] * lat_frac[:, np.newaxis]
+
+    for var in ['U', 'V', 'T', 'Z', 'Q', 'P']:
+        if not (idxs['dims'][3] == 'lon' and idxs['dims'][2] == 'lat'):
+            raise ValueError(" At the moment, can only reduce variables with dimension ( time, ht, lat, lon )")
+        return_dict[var] = np.add.reduce(read_vars[var] * fracts[...,:,:], (2,3))
+
+    dy = h.surface_distance_y( *idxs['lat']['vals'] )
+    dx = h.surface_distance_x( *idxs['lon']['vals'], lat = idxs['lat']['vals'][1] )
+
+    return_dict['dx'] = dx
+    return_dict['dy'] = dy
+
+    return return_dict
 
 
 def cleanup_args(args, base):
@@ -345,7 +371,13 @@ def main():
             print( "     {:10}:{}".format(k, units[k]) )
 
     allvars = read_all_data(args, idxs)
-    allvars = clean_all_vars(args, allvars, idxs, units)
+    allvars, idxs, units = clean_all_vars(args, allvars, idxs, units)
+
+    spacially_interpolated = spacially_interpolate( args, allvars, idxs )
+
+    if args.debug:
+        print( "spacially_interpolated data:")
+        print( spacially_interpolated['U'][0, 0])
 
 if __name__ == '__main__':
     main()
