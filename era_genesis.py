@@ -192,6 +192,111 @@ def spacially_interpolate(args, read_vars, idxs):
     return return_dict
 
 
+def convert_base_time_to_args_time(base, datename, hourname):
+    """(namelist, str, str) -> str
+
+    Converts the data from the base namelist in time->datename and
+    time->hourname into an 12 character time representation according
+    to the arguments:
+
+    >>> base={'time':{'sdate':20100101, 'shour':0, 'edate':20103101, \
+                      'ehour':18}}
+    >>> convert_base_time_to_args_time(base, 'sdate', 'shour')
+    '2010010100'
+    >>> convert_base_time_to_args_time(base, 'edate', 'ehour')
+    '2010310118'
+    """
+
+    return '{:08}{:02}'.format(base['time'][datename],
+                               base['time'][hourname])
+
+
+def read_date_from_args(s):
+    """(str) -> datetime
+
+    reads the string s and tries to interpret it as datetime.
+
+    >>> read_date_from_args('20150101')
+    datetime.datetime(2015, 1, 1, 0, 0)
+    >>> read_date_from_args('2015013104')
+    datetime.datetime(2015, 1, 31, 4, 0)
+    >>> read_date_from_args('201512011231')
+    datetime.datetime(2015, 12, 1, 12, 31)
+    """
+
+    if len(s) == 8:
+        return_date = datetime.datetime.strptime(s, '%Y%m%d')
+    elif len(s) == 10:
+        return_date = datetime.datetime.strptime(s, '%Y%m%d%H')
+    elif len(s) == 12:
+        return_date = datetime.datetime.strptime(s, '%Y%m%d%H%M')
+    else:
+        raise ValueError("Can't read datetime: {}".format(s))
+
+    return return_date
+
+
+def get_start_date(args, base):
+    """(Namespace, namelist) -> datetime
+
+    Returns the start time. If args.start_date is set, then it does nothing.
+    Otherwise, it reads the start_date from the base namelist.
+
+    >>> base={'time':{'sdate':20100101, 'shour':0, 'edate':20100131, \
+                      'ehour':18}}
+    >>> args=argparse.Namespace()
+    >>> args.start_date = None
+    >>> get_start_date(args, base) # args not set
+    datetime.datetime(2010, 1, 1, 0, 0)
+    >>> args.start_date = '20000323' ; get_start_date(args, base)
+    datetime.datetime(2000, 3, 23, 0, 0)
+    >>> args.start_date = '2001012112' ; get_start_date(args, base)
+    datetime.datetime(2001, 1, 21, 12, 0)
+    >>> args.start_date = '196711290630' ; get_start_date(args, base)
+    datetime.datetime(1967, 11, 29, 6, 30)
+    """
+
+    if args.start_date:
+        date_string = args.start_date
+    else:
+        date_string = convert_base_time_to_args_time(base, 'sdate', 'shour')
+
+    return read_date_from_args(date_string)
+
+
+def get_end_date(args, base):
+    """(Namespace, namelist) -> datetime
+
+    Returns the start time. If args.start_date is set, then it does nothing.
+    Otherwise, it reads the start_date from the base namelist.
+
+    >>> base={'time':{'sdate':20000101, 'shour':0, 'edate':20000131, \
+                      'ehour':18}}
+    >>> args=argparse.Namespace()
+    >>> args.start_date = datetime.datetime(2000, 1, 1, 0, 0)
+    >>> args.intervall = datetime.timedelta(hours=6)
+    >>> args.end_date = None ; args.num = None ; get_end_date(args, base)
+    datetime.datetime(2000, 1, 31, 18, 0)
+    >>> args.num=24 ; get_end_date(args, base)
+    datetime.datetime(2000, 1, 6, 18, 0)
+    >>> args.end_date = '20000323' ; get_end_date(args, base)
+    datetime.datetime(2000, 3, 23, 0, 0)
+    >>> args.end_date = '2001012112' ; get_end_date(args, base)
+    datetime.datetime(2001, 1, 21, 12, 0)
+    >>> args.end_date = '196711290630' ; get_end_date(args, base)
+    datetime.datetime(1967, 11, 29, 6, 30)
+    """
+
+    if args.end_date:
+        date_string = args.end_date
+    elif args.start_date and args.num:
+        return args.start_date + (args.num-1) * args.intervall
+    else:
+        date_string = convert_base_time_to_args_time(base, 'edate', 'ehour')
+
+    return read_date_from_args(date_string)
+
+
 def cleanup_args(args, base):
     """(Namelist, dict of dict) -> Namelist
 
@@ -200,31 +305,8 @@ def cleanup_args(args, base):
     from base config file, but options in args are gived priority.
     """
 
-    def read_date_from_args(s):
-        """(str) -> datetime
-
-        reads the string s and tries to interpret it as datetime.
-
-        >>> read_date_from_args('20150101')
-        datetime.datetime(2015, 1, 1, 0, 0)
-        >>> read_date_from_args('2015013104')
-        datetime.datetime(2015, 1, 31, 4, 0)
-        >>> read_date_from_args('201512011231')
-        datetime.datetime(2015, 12, 1, 12, 31)
-        """
-
-        if len(s) == 8:
-            return_date = datetime.datetime.strptime(s, '%Y%m%d')
-        elif len(s) == 10:
-            return_date = datetime.datetime.strptime(s, '%Y%m%d%H')
-        elif len(s) == 12:
-            return_date = datetime.datetime.strptime(s, '%Y%m%d%H%M')
-        else:
-            raise ValueError("Can't read datetime: {}".format(s))
-
-        return return_date
-
     stop = False
+    logger = genesis_logger(args.debug)
     # See whether there are any parameters in the base configuration file
     # that we might use.
     base_knows_sdate = 'time' in base.keys() and 'sdate' in base['time'].keys()
@@ -235,26 +317,12 @@ def cleanup_args(args, base):
     if not args.lat:
         print("Need latitude")
         stop = True
-    if not args.start_date:
-        if base_knows_sdate:
-            if args.debug:
-                print(" No Start Date given in arguments, " +
-                      "reading from base config file ")
-            args.start_date = '{:08}{:02}'.format(base['time']['sdate'],
-                                                  base['time']['shour'])
-        else:
-            print("Need start date")
-            stop = True
-    if not (args.end_date or args.num):
-        if base_knows_edate:
-            if args.debug:
-                print(" No End Date given in arguments, " +
-                      "reading from base config file ")
-            args.end_date = '{:08}{:02}'.format(base['time']['edate'],
-                                                base['time']['ehour'])
-        else:
-            print ("Need end date or number")
-            stop = True
+    if not (args.start_date or base_knows_sdate):
+        logger.write(" No Start Date given")
+        stop = True
+    if not (args.end_date or args.num or base_knows_edate):
+        print ("Need end date or number")
+        stop = True
 
     if stop:
         print(" Please see help file for details (-h)")
@@ -268,18 +336,13 @@ def cleanup_args(args, base):
     args.intervall = datetime.timedelta(hours=int(intervall_hours),
                                         minutes=int(intervall_minutes))
 
-    args.start_date = read_date_from_args(args.start_date)
+    args.start_date = get_start_date(args, base)
+    args.end_date = get_end_date(args, base)
 
-    if args.end_date:
-        args.end_date = read_date_from_args(args.end_date)
-        args.num = 0
-        while args.start_date + args.num*args.intervall <= args.end_date:
-            args.num += 1
-    else:
-        if args.num:
-            args.end_date = (args.num - 1) * args.intervall + args.start_date
-        else:
-            raise ValueError("Need either end date or num")
+    args.num = 1
+    while args.start_date + args.num*args.intervall <= args.end_date:
+        args.num += 1
+
     if args.lat < -90. or args.lat > 90.:
         raise ValueError("Latitude out of bounds: {}".format(args.lat))
     if args.lon < 0. or args.lon > 360.:

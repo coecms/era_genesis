@@ -6,9 +6,11 @@ import netCDF4 as cdf
 
 all_vars = ['U', 'V', 'T', 'Z', 'Q', 'P']
 
+
 class dummyargs(object):
     start_date = datetime.datetime(2000, 1, 1, 0, 0)
     end_date = datetime.datetime(2001, 2, 1, 0, 0)
+
     def __init__(self):
         self.start_date = datetime.datetime(2000, 1, 1, 0, 0)
         self.end_date = datetime.datetime(2001, 2, 1, 0, 0)
@@ -30,8 +32,11 @@ def next_month(month):
     >>> d # month after Dec 2000
     datetime.datetime(2001, 1, 1, 0, 0)
     """
-    if month.month == 12: return datetime.datetime(month.year+1, 1, 1)
+
+    if month.month == 12:
+        return datetime.datetime(month.year+1, 1, 1)
     return datetime.datetime(month.year, month.month+1, 1)
+
 
 def file_list(var, args):
     """(str, Namelist) -> list of str
@@ -43,7 +48,7 @@ def file_list(var, args):
     >>> a.start_date = datetime.datetime(2011, 1, 1, 3, 0)
     >>> a.end_date = datetime.datetime(2012, 2, 1, 0, 0)
     >>> files = file_list('U', a)
-    >>> for f in files: print( f )
+    >>> for f in files: print(f)
     /g/data1/ua8/erai/netcdf/oper_an_pl/fullres/sub-daily/2011/U_6hrs_pl_2011_01.nc
     /g/data1/ua8/erai/netcdf/oper_an_pl/fullres/sub-daily/2011/U_6hrs_pl_2011_02.nc
     /g/data1/ua8/erai/netcdf/oper_an_pl/fullres/sub-daily/2011/U_6hrs_pl_2011_03.nc
@@ -60,56 +65,61 @@ def file_list(var, args):
 
     """
     files = []
-    this_month = datetime.datetime(year=args.start_date.year, month=args.start_date.month, day=1)
+    this_month = datetime.datetime(year=args.start_date.year,
+                                   month=args.start_date.month, day=1)
     while this_month < args.end_date:
-        files.append(get_filename(var,this_month))
+        files.append(get_filename(var, this_month))
         this_month = next_month(this_month)
     return files
 
+
 def get_filename(var, date):
-    """( str, datetime.datetime ) -> str
+    """(str, datetime.datetime) -> str
 
     Creates a string pointing to the file that contains the required
     variable var for the date date.
 
-    >>> d = datetime.datetime( year=2000, month=10, day=5 )
-    >>> get_filename( 'U', d )
+    >>> d = datetime.datetime(year=2000, month=10, day=5)
+    >>> get_filename('U', d)
     '/g/data1/ua8/erai/netcdf/oper_an_pl/fullres/sub-daily/2000/U_6hrs_pl_2000_10.nc'
-    >>> get_filename( 'V', d )
+    >>> get_filename('V', d)
     '/g/data1/ua8/erai/netcdf/oper_an_pl/fullres/sub-daily/2000/V_6hrs_pl_2000_10.nc'
-    >>> get_filename( 'T', d )
+    >>> get_filename('T', d)
     '/g/data1/ua8/erai/netcdf/oper_an_pl/fullres/sub-daily/2000/T_6hrs_pl_2000_10.nc'
-    >>> get_filename( 'Z', d )
+    >>> get_filename('Z', d)
     '/g/data1/ua8/erai/netcdf/oper_an_pl/fullres/sub-daily/2000/Z_6hrs_pl_2000_10.nc'
-    >>> get_filename( 'Q', d )
+    >>> get_filename('Q', d)
     '/g/data1/ua8/erai/netcdf/oper_an_pl/fullres/sub-daily/2000/Q_6hrs_pl_2000_10.nc'
-    >>> get_filename( 'P', d )
+    >>> get_filename('P', d)
     '/g/data1/ua8/erai/netcdf/oper_an_sfc/fullres/sub-daily/2000/MSL_6hrs_sfc_2000_10.nc'
-    >>> d = datetime.datetime( year=2010, month=1, day=1 )
-    >>> get_filename( 'T', d )
+    >>> d = datetime.datetime(year=2010, month=1, day=1)
+    >>> get_filename('T', d)
     '/g/data1/ua8/erai/netcdf/oper_an_pl/fullres/sub-daily/2010/T_6hrs_pl_2010_01.nc'
 
     """
 
-    file_template = '/g/data1/ua8/erai/netcdf/oper_an_{level:}/fullres/sub-daily/{year:4}/{var:}_6hrs_{level:}_{year:4}_{month:02}.nc'
-    assert( var in ['U', 'V', 'T', 'Z', 'Q', 'P'] )
+    file_template = '/g/data1/ua8/erai/netcdf/oper_an_{level:}/fullres/' + \
+        'sub-daily/{year:4}/{var:}_6hrs_{level:}_{year:4}_{month:02}.nc'
+    assert(var in ['U', 'V', 'T', 'Z', 'Q', 'P'])
 
     vals = {
-        'year'  : date.year,
-        'month' : date.month,
-        'level' : 'pl',             # Pressure levels
-        'var'   : var
+        'year': date.year,
+        'month': date.month,
+        'level': 'pl',
+        'var': var
     }
     if var == 'P':
-        vals['level'] = 'sfc'       # Surface
+        vals['level'] = 'sfc'
         vals['var'] = 'MSL'
 
     return file_template.format(**vals)
 
+
 def get_varname(var):
     """(str) -> str
 
-    returns the proper var name for the given var in ['U', 'V', 'T', 'Z', 'Q', 'P']
+    returns the proper var name for the given var in
+    ['U', 'V', 'T', 'Z', 'Q', 'P']
 
     >>> get_varname('U')
     'U_GDS0_ISBL'
@@ -125,12 +135,13 @@ def get_varname(var):
     'MSL_GDS0_SFC'
     """
 
-    assert( var in ['U', 'V', 'T', 'Z', 'Q', 'P'] )
+    assert(var in ['U', 'V', 'T', 'Z', 'Q', 'P'])
 
     if var == 'P':
         return 'MSL_GDS0_SFC'
     else:
         return '{:1}_GDS0_ISBL'.format(var)
+
 
 def get_lat_name(var):
     """ (str) -> str
@@ -150,9 +161,11 @@ def get_lat_name(var):
     >>> get_lat_name('P')
     'g0_lat_1'
     """
-    assert( var in ['U', 'V', 'T', 'Z', 'Q', 'P'] )
-    if var == 'P': return 'g0_lat_1'
+    assert(var in ['U', 'V', 'T', 'Z', 'Q', 'P'])
+    if var == 'P':
+        return 'g0_lat_1'
     return 'g0_lat_2'
+
 
 def get_lon_name(var):
     """ (str) -> str
@@ -172,9 +185,11 @@ def get_lon_name(var):
     >>> get_lon_name('P')
     'g0_lon_2'
     """
-    assert( var in ['U', 'V', 'T', 'Z', 'Q', 'P'] )
-    if var == 'P': return 'g0_lon_2'
+    assert(var in ['U', 'V', 'T', 'Z', 'Q', 'P'])
+    if var == 'P':
+        return 'g0_lon_2'
     return 'g0_lon_3'
+
 
 def get_time_name(var):
     """ (str) -> str
@@ -194,8 +209,9 @@ def get_time_name(var):
     >>> get_time_name('P')
     'initial_time0_hours'
     """
-    assert( var in ['U', 'V', 'T', 'Z', 'Q', 'P'] )
+    assert(var in ['U', 'V', 'T', 'Z', 'Q', 'P'])
     return 'initial_time0_hours'
+
 
 def get_ht_name(var):
     """ (str) -> str
@@ -217,35 +233,40 @@ def get_ht_name(var):
     ''
     """
     assert (var in ['U', 'V', 'T', 'Z', 'Q', 'P'])
-    if var == 'P': return ''
+    if var == 'P':
+        return ''
     return 'lv_ISBL1'
 
-def genesis_open_netCDF( file_handle ):
+
+def genesis_open_netCDF(file_handle):
     if type(file_handle) == str:
-        return cdf.Dataset( file_handle, 'r' ), True
+        return cdf.Dataset(file_handle, 'r'), True
     elif type(file_handle) == cdf.Dataset:
         return file_handle, False
-    raise ValueError( "File Handle must be string or Dataset" )
+    raise ValueError("File Handle must be string or Dataset")
 
-def genesis_close_netCDF( file_handle, opened ):
+
+def genesis_close_netCDF(file_handle, opened):
     if opened:
         file_handle.close()
+
 
 def get_dimension_lengths(file_handle):
     """(str) -> dict of str->int
 
-    Returns a dictionary with dimension names as keys and the dimension sizes as values
+    Returns a dictionary with dimension names as keys and the dimension sizes
+    as values
 
     """
 
     return_dict = {}
 
-    dataset, opened_here = genesis_open_netCDF( file_handle )
+    dataset, opened_here = genesis_open_netCDF(file_handle)
     dimensions = dataset.dimensions
     for dim in dimensions:
-        return_dict[ dim ] = len(dimensions[dim])
+        return_dict[dim] = len(dimensions[dim])
 
-    genesis_close_netCDF( dataset, opened_here )
+    genesis_close_netCDF(dataset, opened_here)
 
     return return_dict
 
@@ -253,61 +274,69 @@ def get_dimension_lengths(file_handle):
 def get_shape(file_handle, var_name):
     """ (str, str) -> tuple of (list of int, list of str)
 
-    Returns the shape of the variable var_name in the file file_name, and a list of dimension names.
-    file_handle can be a string pointing to a netCDF source, or a netcdf Dataset. If it is a Dataset,
-    it will remain open.
+    Returns the shape of the variable var_name in the file file_name, and a
+    list of dimension names.  file_handle can be a string pointing to a
+    netCDF source, or a netcdf Dataset. If it is a Dataset, it will remain
+    open.
 
     >>> file_name = get_filename('U', datetime.datetime(2010, 1, 1))
     >>> var_name = get_varname('U')
-    >>> get_shape(file_name, var_name)
-    ([124, 37, 241, 480], [u'initial_time0_hours', u'lv_ISBL1', u'g0_lat_2', u'g0_lon_3'])
+    >>> get_shape(file_name, var_name)[0]
+    [124, 37, 241, 480]
+    >>> get_shape(file_name, var_name)[1]
+    [u'initial_time0_hours', u'lv_ISBL1', u'g0_lat_2', u'g0_lon_3']
     >>> ncid = cdf.Dataset(file_name, 'r')
-    >>> get_shape(ncid, var_name)
-    ([124, 37, 241, 480], [u'initial_time0_hours', u'lv_ISBL1', u'g0_lat_2', u'g0_lon_3'])
+    >>> get_shape(ncid, var_name)[0]
+    [124, 37, 241, 480]
+    >>> get_shape(ncid, var_name)[1]
+    [u'initial_time0_hours', u'lv_ISBL1', u'g0_lat_2', u'g0_lon_3']
     >>> ncid.close()
     """
 
-    ncid, opened_here = genesis_open_netCDF( file_handle )
-    variable = ncid.variables[ get_varname(var_name) ]
+    ncid, opened_here = genesis_open_netCDF(file_handle)
+    variable = ncid.variables[get_varname(var_name)]
     shape = []
     names = []
     for d in variable.dimensions:
-        names.append( d )
+        names.append(d)
         shape.append(len(ncid.dimensions[d]))
-    genesis_close_netCDF( ncid, opened_here )
+    genesis_close_netCDF(ncid, opened_here)
 
     return shape, names
 
-def read_array( file_handle, var_name, shape = None):
+
+def read_array(file_handle, var_name, shape=None):
     """ (str or Dataset, str) -> ndarray
 
-    Returns all data from the netCDF file file_handle with the variable name var_name.
-    file_handle can be a string containing the file name, or it can be a netCDF dataset.
-    If it contains the file name, it will be opened, read, and closed, otherwise it will remain open.
+    Returns all data from the netCDF file file_handle with the variable name
+    var_name.  file_handle can be a string containing the file name, or it
+    can be a netCDF dataset.  If it contains the file name, it will be opened,
+    read, and closed, otherwise it will remain open.
 
     >>> file_name = get_filename('U', datetime.datetime(2000, 1, 1))
     >>> var_name = get_ht_name('U')
-    >>> read_array( file_name, var_name )
+    >>> read_array(file_name, var_name)
     array([   1,    2,    3,    5,    7,   10,   20,   30,   50,   70,  100,
             125,  150,  175,  200,  225,  250,  300,  350,  400,  450,  500,
             550,  600,  650,  700,  750,  775,  800,  825,  850,  875,  900,
             925,  950,  975, 1000], dtype=int32)
-    >>> read_array( file_name, var_name, [[5, 6, 7, 8]] )
+    >>> read_array(file_name, var_name, [[5, 6, 7, 8]])
     array([10, 20, 30, 50], dtype=int32)
     """
 
-    ncid, opened_here = genesis_open_netCDF( file_handle )
+    ncid, opened_here = genesis_open_netCDF(file_handle)
 
     if shape:
         return_array = ncid.variables[var_name][shape]
     else:
         return_array = ncid.variables[var_name][...]
 
-    genesis_close_netCDF( ncid, opened_here )
+    genesis_close_netCDF(ncid, opened_here)
 
     return return_array
 
-def get_indices( args ):
+
+def get_indices(args):
     """ (Namelist, str) -> dict
 
     Returns a dictionary which describe the indices that need to be read.
@@ -319,66 +348,67 @@ def get_indices( args ):
     dummy_var = 'U'
 
     return_dict = {
-        'lat' : {},
-        'lon' : {},
-        'ht' : {},
-        'time' : {},
-        'dims' : []
+        'lat': {},
+        'lon': {},
+        'ht': {},
+        'time': {},
+        'dims': []
     }
 
     # First, open the first file to get the best values for lat, lon, and time
-    ncid, opened_here = genesis_open_netCDF( get_filename( dummy_var, args.start_date ))
+    ncid, opened_here = genesis_open_netCDF(get_filename(dummy_var,
+                                                         args.start_date))
 
-    dim_lengths = get_dimension_lengths( ncid )
+    dim_lengths = get_dimension_lengths(ncid)
 
     # Get the shape and dimnames
-    shape, dimnames = get_shape( ncid, dummy_var )
+    shape, dimnames = get_shape(ncid, dummy_var)
 
-    dimnames[dimnames.index( get_lat_name( dummy_var ))] = 'lat'
-    dimnames[dimnames.index( get_lon_name( dummy_var ))] = 'lon'
-    dimnames[dimnames.index(  get_ht_name( dummy_var ))] = 'ht'
-    dimnames[dimnames.index(get_time_name( dummy_var ))] = 'time'
+    dimnames[dimnames.index(get_lat_name(dummy_var))] = 'lat'
+    dimnames[dimnames.index(get_lon_name(dummy_var))] = 'lon'
+    dimnames[dimnames.index(get_ht_name(dummy_var))] = 'ht'
+    dimnames[dimnames.index(get_time_name(dummy_var))] = 'time'
 
     # Get the height indices: All of them
     ht_idxs = list(range(dim_lengths[get_ht_name(dummy_var)]))
-    ht_vals = read_array( ncid, get_ht_name(dummy_var) )
+    ht_vals = read_array(ncid, get_ht_name(dummy_var))
 
     # Get the latitude indices
     lat_array = read_array(ncid, get_lat_name(dummy_var))
-    lat_idxs = h.find_nearest_indices( lat_array, args.lat )
+    lat_idxs = h.find_nearest_indices(lat_array, args.lat)
     if args.debug:
-        print( "Lat array grid points: {},  indices: {}".format(lat_array[lat_idxs], lat_idxs))
+        print("Lat array grid points: {},  indices: {}".format(
+            lat_array[lat_idxs], lat_idxs))
     lat_vals = lat_array[lat_idxs]
 
     # Get the longitude indices
     long_array = read_array(ncid, get_lon_name(dummy_var))
-    long_idxs = h.find_nearest_indices( long_array, args.lon )
+    long_idxs = h.find_nearest_indices(long_array, args.lon)
     if args.debug:
-        print( "Long array grid points: {},  indices: {}".format(long_array[long_idxs], long_idxs))
+        print("Long array grid points: {},  indices: {}".format(
+            long_array[long_idxs], long_idxs))
     long_vals = long_array[long_idxs]
 
-    genesis_close_netCDF( ncid, opened_here )
-
+    genesis_close_netCDF(ncid, opened_here)
 
     # The time indices is getting harder, because they change from file to file.
-
     # Get a list of files that encompass all the times:
 
-    files = file_list( dummy_var, args )
+    files = file_list(dummy_var, args)
     times_idxs = []
     times_vals = []
     for f in files:
-        ncid, opened_here = genesis_open_netCDF( f )
+        ncid, opened_here = genesis_open_netCDF(f)
 
         # Get the variable
-        time_var = ncid.variables[get_time_name( dummy_var )]
+        time_var = ncid.variables[get_time_name(dummy_var)]
 
         # Convert the time data into a numpy array.
         times = time_var[:]
 
         # Covert start and end date into the same format as times
-        s_date = cdf.date2num( args.start_date, units=time_var.units )
-        e_date = cdf.date2num( args.end_date, units=time_var.units )
+        s_date = cdf.date2num(args.start_date, units=time_var.units)
+        e_date = cdf.date2num(args.end_date, units=time_var.units)
 
         # Find the closest location to both start and end date
         start_idx = np.abs(times - s_date).argmin()
@@ -392,23 +422,23 @@ def get_indices( args ):
         times_idxs.append(t_idxs)
         times_vals.append(t_vals)
 
-        genesis_close_netCDF( ncid, opened_here )
+        genesis_close_netCDF(ncid, opened_here)
 
     return_dict['lat'] = {
-        'idxs' : lat_idxs,
-        'vals' : lat_vals
+        'idxs': lat_idxs,
+        'vals': lat_vals
     }
     return_dict['lon'] = {
-        'idxs' : long_idxs,
-        'vals' : long_vals
+        'idxs': long_idxs,
+        'vals': long_vals
     }
     return_dict['ht'] = {
-        'idxs' : ht_idxs,
-        'vals' : ht_vals
+        'idxs': ht_idxs,
+        'vals': ht_vals
     }
     return_dict['time'] = {
-        'idxs_list' : times_idxs,
-        'vals_list' : times_vals
+        'idxs_list': times_idxs,
+        'vals_list': times_vals
     }
     return_dict['dims'] = dimnames
 
@@ -418,15 +448,16 @@ def get_indices( args ):
 def get_all_units(args):
     """ (Namelist) -> dict
 
-    Returns a dictionary that gives the units for the various variables and dimensions.
+    Returns a dictionary that gives the units for the various variables and
+    dimensions.
 
     """
 
     return_dict = {}
 
     for var in all_vars:
-        file_name = get_filename( var, args.start_date )
-        ncid, opened_here = genesis_open_netCDF( file_name )
+        file_name = get_filename(var, args.start_date)
+        ncid, opened_here = genesis_open_netCDF(file_name)
 
         if var == all_vars[0]:
             # for the first variable, we also read out the units for the
@@ -438,13 +469,11 @@ def get_all_units(args):
 
         return_dict[var] = ncid.variables[get_varname(var)].units
 
-        genesis_close_netCDF( ncid, opened_here )
+        genesis_close_netCDF(ncid, opened_here)
 
     return return_dict
-
 
 
 if __name__ == '__main__':
     import doctest
     doctest.testmod()
-
