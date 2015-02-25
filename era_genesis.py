@@ -36,7 +36,8 @@ class genesis_logger(object):
     def write(self, obj):
         if self.active:
             print(obj)
-    def write_by_item(self, obj, indent = 0, key_length = 12, header=None):
+
+    def write_by_item(self, obj, indent=0, key_length=12, header=None):
         if self.active:
             if header:
                 print(header)
@@ -46,8 +47,6 @@ class genesis_logger(object):
             else:
                 for val in obj:
                     print(' '*indent + '{}'.format(val))
-
-
 
 
 def read_netcdf_data(var, idxs, args):
@@ -347,7 +346,7 @@ def main():
 
     logger = genesis_logger(args.debug)
 
-    logger.write_by_item(args, indent=2, 'command-line parameters:')
+    logger.write_by_item(args, indent=2, header='command-line parameters:')
     logger.write(" Read from base configuration file.")
     for k in base.keys():
         logger.write_by_item(base[k], key_length=12, indent=4, header=k)
