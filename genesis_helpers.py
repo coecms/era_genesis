@@ -126,6 +126,21 @@ def find_fractions_array(array, val, idxs=None):
 
     return_array = np.zeros_like(array)
 
+    ascending = (array[0] < array[-1])
+
+    if val == array[0]:
+        return_array[0] = 1.0
+        return return_array
+    if val == array[-1]:
+        return_array[-1] = 1.0
+        return return_array
+    if ascending == (val > array[-1]):
+        return_array[-1] = 1.0
+        return return_array
+    if ascending == (val < array[0]):
+        return_array[0] = 1.0
+        return return_array
+
     if type(idxs) in [list, tuple] and len(idxs) == 2:
         left = idxs[0]
         right = idxs[1]
@@ -188,6 +203,57 @@ def convert_to_datetime(date, hour):
     day = datetime.datetime.strptime(date, '%Y%m%d')
 
     return day.replace(hour=hour)
+
+
+def calc_ht_conversion(ht_in, ht_out):
+    """(array, array) -> matrix
+
+    Returns a matrix that interpolates from the ht_in height array into
+    the ht_out height array.
+
+    >>> h1 = np.array(range(5))*25.
+    >>> h2 = np.array(range(6))*20.
+    >>> calc_ht_conversion(h1, h2)
+    matrix([[ 1.  ,  0.  ,  0.  ,  0.  ,  0.  ],
+            [ 0.  ,  0.75,  0.  ,  0.  ,  0.  ],
+            [ 0.  ,  0.25,  0.5 ,  0.  ,  0.  ],
+            [ 0.  ,  0.  ,  0.5 ,  0.25,  0.  ],
+            [ 0.  ,  0.  ,  0.  ,  0.75,  0.  ],
+            [ 0.  ,  0.  ,  0.  ,  0.  ,  1.  ]])
+    """
+
+    len_in = len(ht_in)
+    len_out = len(ht_out)
+
+    conv_matrix = np.matrix(np.zeros((len_out, len_in), dtype=np.float))
+
+    for i in range(len_in):
+        conv_matrix[:, i] = \
+            find_fractions_array(ht_out, ht_in[i])[:, np.newaxis]
+
+    return conv_matrix
+
+
+def get_eta_theta(base):
+    """(Namelist) -> np.array
+
+    retrieves the eta_theta array from base namelist, and multiplies it with
+    z_top_of_model.
+    """
+
+    return base['vertlevs']['z_top_of_model'] * \
+        base['vertlevs']['eta_theta']
+
+
+def get_eta_rho(base):
+    """(Namelist) -> np.array
+
+    retrieves the eta_rho array from base namelist, and multiplies it with
+    z_top_of_model.
+    """
+
+    return base['vertlevs']['z_top_of_model'] * \
+        base['vertlevs']['eta_rho']
 
 
 if __name__ == '__main__':
