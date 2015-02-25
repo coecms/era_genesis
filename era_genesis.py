@@ -43,11 +43,13 @@ class genesis_logger(object):
                 print(header)
             if type(obj) == dict:
                 for key, val in obj.iteritems():
-                    print(' '*indent + '{:key_length}: {}'.format(key, val))
+                    ki = '{:'+str(key_length)+'}'
+                    print((' '*indent + ki + ': {}').format(key, val))
             elif type(obj) == argparse.Namespace:
                 for key in obj.__dict__:
                     val = getattr(obj, key)
-                    print(' '*indent + '{:key_length}: {}'.format(key, val))
+                    ki = '{:'+str(key_length)+'}'
+                    print((' '*indent + ki + ': {}').format(key, val))
             else:
                 for val in obj:
                     print(' '*indent + '{}'.format(val))
