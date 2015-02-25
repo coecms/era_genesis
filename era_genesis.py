@@ -192,7 +192,7 @@ def spacially_interpolate(args, read_vars, idxs):
     return return_dict
 
 
-def vertically_interpolate(data_in, eta_theta, eta_rho):
+def vertically_interpolate(data_in, eta_theta, eta_rho, orig_levs):
     """(dict, array, array) -> dict
 
     """
@@ -201,6 +201,15 @@ def vertically_interpolate(data_in, eta_theta, eta_rho):
         'eta_theta': eta_theta,
         'eta_rho': eta_rho
     }
+
+    theta_converter = h.calc_ht_conversion(orig_levs, eta_theta)
+    rho_converter = h.calc_ht_conversion(orig_levs, eta_rho)
+
+    for v in ['T', 'Q']:
+        return_dict[v] = h.convert_height(data_in[v], theta_converter)
+
+    for v in ['U', 'V']:
+        return_dict[v] = h.convert_height(data_in[v], rho_converter)
 
     return return_dict
 
@@ -225,9 +234,9 @@ def replace_namelist(template, out_data, base, args):
         if base['usrfields_2']['tau_rlx']:
             return_namelist['inobsfor']['tau_rlx'] = args.intervall.seconds
         if base['usrfields_2']['u_inc']:
-            return_namelist['inobsfor']['u_inc'] = 'not implemented yet'
+            return_namelist['inobsfor']['u_inc'] = out_data['U']
         if base['usrfields_2']['v_inc']:
-            return_namelist['inobsfor']['v_inc'] = 'not implemented yet'
+            return_namelist['inobsfor']['v_inc'] = out_data['V']
         if base['usrfields_2']['w_inc']:
             return_namelist['inobsfor']['w_inc'] = 'not implemented yet'
         if base['usrfields_2']['t_inc']:
@@ -242,9 +251,9 @@ def replace_namelist(template, out_data, base, args):
         if base['usrfields_2']['w_inc']:
             return_namelist['inobsfor']['w_inc'] = 'not implemented yet'
         if base['usrfields_2']['t_inc']:
-            return_namelist['inobsfor']['t_inc'] = 'not implemented yet'
+            return_namelist['inobsfor']['t_inc'] = out_data['T']
         if base['usrfields_2']['q_star']:
-            return_namelist['inobsfor']['q_star'] = 'not implemented yet'
+            return_namelist['inobsfor']['q_star'] = out_data['Q']
 
     if base['usrfields_1']['ui']:
         return_namelist['inprof']['ui'] = 'not implemented yet'
@@ -513,11 +522,12 @@ def main():
 
     spacially_interpolated = spacially_interpolate(args, allvars, idxs)
 
+    pressure_levs = idxs['ht']['vals']
     eta_theta = h.get_eta_theta(base)
     eta_rho = h.get_eta_rho(base)
 
     out_data = vertically_interpolate(spacially_interpolated, eta_theta,
-                                      eta_rho)
+                                      eta_rho, pressure_levs)
     template = f90nml.read(args.template)
 
     out_namelist = replace_namelist(template, out_data, base, args)

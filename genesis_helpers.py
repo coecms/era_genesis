@@ -241,8 +241,10 @@ def get_eta_theta(base):
     z_top_of_model.
     """
 
-    return base['vertlevs']['z_top_of_model'] * \
-        np.array(base['vertlevs']['eta_theta'])
+    return_array = np.array(base['vertlevs']['eta_theta'])
+    return_array *= base['vertlevs']['z_top_of_model']
+    return_array += base['vertlevs']['z_terrain_asl']
+    return return_array
 
 
 def get_eta_rho(base):
@@ -252,8 +254,28 @@ def get_eta_rho(base):
     z_top_of_model.
     """
 
-    return base['vertlevs']['z_top_of_model'] * \
-        np.array(base['vertlevs']['eta_rho'])
+    return_array = np.array(base['vertlevs']['eta_rho'])
+    return_array *= base['vertlevs']['z_top_of_model']
+    return_array += base['vertlevs']['z_terrain_asl']
+    return return_array
+
+
+def convert_height(array_in, calc_matrix):
+    """(np.array, np.matrix) -> np.array
+
+    """
+
+    shape_in = array_in.shape
+
+    shape_out = (shape_in[0], calc_matrix.shape[0])
+
+    array_out = np.empty(shape_out, dtype=np.float)
+
+    for i in range(shape_in[0]):
+        new_vert_array = calc_matrix * np.matrix(array_in[i, :]).T
+        array_out[i, :] = np.array(new_vert_array.flat)[:]
+
+    return array_out
 
 
 if __name__ == '__main__':
