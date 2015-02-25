@@ -280,7 +280,7 @@ def get_shape(file_handle, var_name):
     open.
 
     >>> file_name = get_filename('U', datetime.datetime(2010, 1, 1))
-    >>> var_name = get_varname('U')
+    >>> var_name = 'U'
     >>> get_shape(file_name, var_name)[0]
     [124, 37, 241, 480]
     >>> get_shape(file_name, var_name)[1]
