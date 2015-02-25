@@ -242,7 +242,7 @@ def get_eta_theta(base):
     """
 
     return base['vertlevs']['z_top_of_model'] * \
-        base['vertlevs']['eta_theta']
+        np.array(base['vertlevs']['eta_theta'])
 
 
 def get_eta_rho(base):
@@ -253,7 +253,7 @@ def get_eta_rho(base):
     """
 
     return base['vertlevs']['z_top_of_model'] * \
-        base['vertlevs']['eta_rho']
+        np.array(base['vertlevs']['eta_rho'])
 
 
 if __name__ == '__main__':

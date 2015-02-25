@@ -243,7 +243,7 @@ def replace_namelist(template, out_data, base, args):
             return_namelist['inobsfor']['w_inc'] = 'not implemented yet'
         if base['usrfields_2']['t_inc']:
             return_namelist['inobsfor']['t_inc'] = 'not implemented yet'
-        if base['usrfields_2']['qstar']:
+        if base['usrfields_2']['q_star']:
             return_namelist['inobsfor']['q_star'] = 'not implemented yet'
 
     if base['usrfields_1']['ui']:
@@ -266,10 +266,10 @@ def replace_namelist(template, out_data, base, args):
     return_namelist['indata']['day_init'] = args.start_date.day
     return_namelist['indata']['hour_init'] = args.start_date.hour
 
-    return_namelist['rundata']['nminin'] = \
-        (args.end_date - args.start_date).minutes
+    delta = args.end_date - args.start_date
+    return_namelist['rundata']['nminin'] = int(delta.total_seconds() / 60)
 
-    return_namelist['inobsfor']['tstar_forcing'] = np.ones(args.num)*288.0
+    return_namelist['inobsfor']['tstar_forcing'] = [288.0] * args.num
 
     return return_namelist
 
