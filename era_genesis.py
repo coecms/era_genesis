@@ -6,7 +6,7 @@ import os
 import numpy as np
 import datetime
 import genesis_netcdf_helpers as nch
-# import genesis_helpers as h
+import genesis_helpers as h
 
 try:
     import f90nml
@@ -190,6 +190,88 @@ def spacially_interpolate(args, read_vars, idxs):
     return_dict['dy'] = dy
 
     return return_dict
+
+
+def vertically_interpolate(data_in, eta_theta, eta_rho):
+    """(dict, array, array) -> dict
+
+    """
+
+    return_dict = {
+        'eta_theta': eta_theta,
+        'eta_rho': eta_rho
+    }
+
+    return return_dict
+
+
+def replace_namelist(template, out_data, base, args):
+    """(namelist, dict, namelist, Namespace) -> namelist
+
+    Replaces all relevant data in template, then returns this new
+    namelist.
+    """
+
+    from copy import deepcopy
+
+    return_namelist = deepcopy(template)
+
+    l_windrlx = base['usrfields_2']['l_windrlx']
+
+    return_namelist['inobsfor']['l_winrlx'] = l_windrlx
+    return_namelist['cntlscm']['nfor'] = args.num
+
+    if l_windrlx:
+        if base['usrfields_2']['tau_rlx']:
+            return_namelist['inobsfor']['tau_rlx'] = args.intervall.seconds
+        if base['usrfields_2']['u_inc']:
+            return_namelist['inobsfor']['u_inc'] = 'not implemented yet'
+        if base['usrfields_2']['v_inc']:
+            return_namelist['inobsfor']['v_inc'] = 'not implemented yet'
+        if base['usrfields_2']['w_inc']:
+            return_namelist['inobsfor']['w_inc'] = 'not implemented yet'
+        if base['usrfields_2']['t_inc']:
+            return_namelist['inobsfor']['t_inc'] = 'not implemented yet'
+        if base['usrfields_2']['qstar']:
+            return_namelist['inobsfor']['q_star'] = 'not implemented yet'
+    else:
+        if base['usrfields_2']['u_inc']:
+            return_namelist['inobsfor']['u_inc'] = 'not implemented yet'
+        if base['usrfields_2']['v_inc']:
+            return_namelist['inobsfor']['v_inc'] = 'not implemented yet'
+        if base['usrfields_2']['w_inc']:
+            return_namelist['inobsfor']['w_inc'] = 'not implemented yet'
+        if base['usrfields_2']['t_inc']:
+            return_namelist['inobsfor']['t_inc'] = 'not implemented yet'
+        if base['usrfields_2']['qstar']:
+            return_namelist['inobsfor']['q_star'] = 'not implemented yet'
+
+    if base['usrfields_1']['ui']:
+        return_namelist['inprof']['ui'] = 'not implemented yet'
+    if base['usrfields_1']['vi']:
+        return_namelist['inprof']['vi'] = 'not implemented yet'
+    if base['usrfields_1']['wi']:
+        return_namelist['inprof']['wi'] = 'not implemented yet'
+    if base['usrfields_1']['theta']:
+        return_namelist['inprof']['theta'] = 'not implemented yet'
+    if base['usrfields_1']['qi']:
+        return_namelist['inprof']['qi'] = 'not implemented yet'
+    if base['usrfields_1']['p_in']:
+        return_namelist['inprof']['p_in'] = 'not implemented yet'
+
+    return_namelist['indata']['lat'] = args.lat
+    return_namelist['indata']['long'] = args.lon
+    return_namelist['indata']['year_init'] = args.start_date.year
+    return_namelist['indata']['month_init'] = args.start_date.month
+    return_namelist['indata']['day_init'] = args.start_date.day
+    return_namelist['indata']['hour_init'] = args.start_date.hour
+
+    return_namelist['rundata']['nminin'] = \
+        (args.end_date - args.start_date).minutes
+
+    return_namelist['inobsfor']['tstar_forcing'] = np.ones(args.num)*288.0
+
+    return return_namelist
 
 
 def convert_base_time_to_args_time(base, datename, hourname):
@@ -430,6 +512,17 @@ def main():
     allvars, idxs, units = clean_all_vars(args, allvars, idxs, units)
 
     spacially_interpolated = spacially_interpolate(args, allvars, idxs)
+
+    eta_theta = h.get_eta_theta(base)
+    eta_rho = h.get_eta_rho(base)
+
+    out_data = vertically_interpolate(spacially_interpolated, eta_theta,
+                                      eta_rho)
+    template = f90nml.read(args.template)
+
+    out_namelist = replace_namelist(template, out_data, base, args)
+
+    out_namelist.write(args.output)
 
 
 if __name__ == '__main__':
