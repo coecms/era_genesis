@@ -225,66 +225,70 @@ def replace_namelist(template, out_data, base, args):
 
     return_namelist = deepcopy(template)
 
+    # Instead of writing lots of return_namelist['something']['varname']
+    # I can make use of the shallow copying.
+    # So every time I change for example inobsfor, return_namelist['inobsfor']
+    # changes as well.
+    inobsfor = return_namelist['inobsfor']
+    inprof = return_namelist['inprof']
+    indata = return_namelist['indata']
+
     l_windrlx = base['usrfields_2']['l_windrlx']
 
-    return_namelist['inobsfor']['l_windrlx'] = l_windrlx
+    inobsfor['l_windrlx'] = l_windrlx
     return_namelist['cntlscm']['nfor'] = args.num
 
     print("l_windrlx: {}".format(l_windrlx))
 
     if l_windrlx:
         if base['usrfields_2']['tau_rlx']:
-            return_namelist['inobsfor']['tau_rlx'] = args.intervall.seconds
+            inobsfor['tau_rlx'] = args.intervall.seconds
         if base['usrfields_2']['u_inc']:
-            return_namelist['inobsfor']['u_inc'] = 'not implemented yet'
+            inobsfor['u_inc'] = 'not implemented yet'
         if base['usrfields_2']['v_inc']:
-            return_namelist['inobsfor']['v_inc'] = 'not implemented yet'
+            inobsfor['v_inc'] = 'not implemented yet'
         if base['usrfields_2']['w_inc']:
-            return_namelist['inobsfor']['w_inc'] = 'not implemented yet'
+            inobsfor['w_inc'] = 'not implemented yet'
         if base['usrfields_2']['t_inc']:
-            return_namelist['inobsfor']['t_inc'] = 'not implemented yet'
+            inobsfor['t_inc'] = 'not implemented yet'
         if base['usrfields_2']['qstar']:
-            return_namelist['inobsfor']['q_star'] = 'not implemented yet'
+            inobsfor['q_star'] = 'not implemented yet'
     else:
         if base['usrfields_2']['u_inc']:
-            return_namelist['inobsfor']['u_inc'] = 'not implemented yet'
+            inobsfor['u_inc'] = 'not implemented yet'
         if base['usrfields_2']['v_inc']:
-            return_namelist['inobsfor']['v_inc'] = 'not implemented yet'
+            inobsfor['v_inc'] = 'not implemented yet'
         if base['usrfields_2']['w_inc']:
-            return_namelist['inobsfor']['w_inc'] = 'not implemented yet'
+            inobsfor['w_inc'] = 'not implemented yet'
         if base['usrfields_2']['t_inc']:
-            return_namelist['inobsfor']['t_inc'] = 'not implemented yet'
+            inobsfor['t_inc'] = 'not implemented yet'
         if base['usrfields_2']['q_star']:
-            return_namelist['inobsfor']['q_star'] = 'not implemented yet'
+            inobsfor['q_star'] = 'not implemented yet'
 
     if base['usrfields_1']['ui']:
-        return_namelist['inprof']['ui'] = \
-            out_data['U'][0, :].flatten(order='F').tolist()
+        inprof['ui'] = out_data['U'][0, :].flatten(order='F').tolist()
     if base['usrfields_1']['vi']:
-        return_namelist['inprof']['vi'] = \
-            out_data['V'][0, :].flatten(order='F').tolist()
+        inprof['vi'] = out_data['V'][0, :].flatten(order='F').tolist()
     if base['usrfields_1']['wi']:
-        return_namelist['inprof']['wi'] = 'not implemented yet'
+        inprof['wi'] = 'not implemented yet'
     if base['usrfields_1']['theta']:
-        return_namelist['inprof']['theta'] = \
-            out_data['T'][0, :].flatten(order='F').tolist()
+        inprof['theta'] = out_data['T'][0, :].flatten(order='F').tolist()
     if base['usrfields_1']['qi']:
-        return_namelist['inprof']['qi'] = \
-            out_data['Q'][0, :].flatten(order='F').tolist()
+        inprof['qi'] = out_data['Q'][0, :].flatten(order='F').tolist()
     if base['usrfields_1']['p_in']:
-        return_namelist['inprof']['p_in'] = 'not implemented yet'
+        inprof['p_in'] = 'not implemented yet'
 
-    return_namelist['indata']['lat'] = args.lat
-    return_namelist['indata']['long'] = args.lon
-    return_namelist['indata']['year_init'] = args.start_date.year
-    return_namelist['indata']['month_init'] = args.start_date.month
-    return_namelist['indata']['day_init'] = args.start_date.day
-    return_namelist['indata']['hour_init'] = args.start_date.hour
+    indata['lat'] = args.lat
+    indata['long'] = args.lon
+    indata['year_init'] = args.start_date.year
+    indata['month_init'] = args.start_date.month
+    indata['day_init'] = args.start_date.day
+    indata['hour_init'] = args.start_date.hour
 
     delta = args.end_date - args.start_date
-    return_namelist['rundata']['nminin'] = int(delta.total_seconds() / 60)
+    return_namelist['rundata']['nminin'] = int((delta.total_seconds()+1) / 60)
 
-    return_namelist['inobsfor']['tstar_forcing'] = [288.0] * args.num
+    inobsfor['tstar_forcing'] = [288.0] * args.num
 
     return return_namelist
 
