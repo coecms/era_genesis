@@ -227,16 +227,18 @@ def replace_namelist(template, out_data, base, args):
 
     l_windrlx = base['usrfields_2']['l_windrlx']
 
-    return_namelist['inobsfor']['l_winrlx'] = l_windrlx
+    return_namelist['inobsfor']['l_windrlx'] = l_windrlx
     return_namelist['cntlscm']['nfor'] = args.num
+
+    print( "l_windrlx: {}".format(l_windrlx))
 
     if l_windrlx:
         if base['usrfields_2']['tau_rlx']:
             return_namelist['inobsfor']['tau_rlx'] = args.intervall.seconds
         if base['usrfields_2']['u_inc']:
-            return_namelist['inobsfor']['u_inc'] = out_data['U']
+            return_namelist['inobsfor']['u_inc'] = '' #out_data['U'].tolist()
         if base['usrfields_2']['v_inc']:
-            return_namelist['inobsfor']['v_inc'] = out_data['V']
+            return_namelist['inobsfor']['v_inc'] = 'not implemented yet'
         if base['usrfields_2']['w_inc']:
             return_namelist['inobsfor']['w_inc'] = 'not implemented yet'
         if base['usrfields_2']['t_inc']:
@@ -245,15 +247,15 @@ def replace_namelist(template, out_data, base, args):
             return_namelist['inobsfor']['q_star'] = 'not implemented yet'
     else:
         if base['usrfields_2']['u_inc']:
-            return_namelist['inobsfor']['u_inc'] = 'not implemented yet'
+            return_namelist['inobsfor']['u_inc'] = out_data['U'].flatten().tolist()
         if base['usrfields_2']['v_inc']:
             return_namelist['inobsfor']['v_inc'] = 'not implemented yet'
         if base['usrfields_2']['w_inc']:
             return_namelist['inobsfor']['w_inc'] = 'not implemented yet'
         if base['usrfields_2']['t_inc']:
-            return_namelist['inobsfor']['t_inc'] = out_data['T']
+            return_namelist['inobsfor']['t_inc'] = 'not implemented yet'
         if base['usrfields_2']['q_star']:
-            return_namelist['inobsfor']['q_star'] = out_data['Q']
+            return_namelist['inobsfor']['q_star'] = 'not implemented yet'
 
     if base['usrfields_1']['ui']:
         return_namelist['inprof']['ui'] = 'not implemented yet'

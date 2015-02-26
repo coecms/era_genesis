@@ -243,7 +243,7 @@ def get_eta_theta(base):
 
     return_array = np.array(base['vertlevs']['eta_theta'])
     return_array *= base['vertlevs']['z_top_of_model']
-    return_array += base['vertlevs']['z_terrain_asl']
+    return_array += base['base']['z_terrain_asl']
     return return_array
 
 
@@ -256,7 +256,7 @@ def get_eta_rho(base):
 
     return_array = np.array(base['vertlevs']['eta_rho'])
     return_array *= base['vertlevs']['z_top_of_model']
-    return_array += base['vertlevs']['z_terrain_asl']
+    return_array += base['base']['z_terrain_asl']
     return return_array
 
 
