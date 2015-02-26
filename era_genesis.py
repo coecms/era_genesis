@@ -157,7 +157,7 @@ def clean_all_vars(args, all_vars, idxs, units):
     return all_vars, idxs, units
 
 
-def spacially_interpolate(args, read_vars, idxs):
+def spatially_interpolate(args, read_vars, idxs):
     """( Namelist, dict, dict ) -> dict
 
     Creates a new namelist with spacially interpolated data of args.
@@ -530,16 +530,18 @@ def main():
     allvars = read_all_data(args, idxs)
     allvars, idxs, units = clean_all_vars(args, allvars, idxs, units)
 
-    spacially_interpolated = spacially_interpolate(args, allvars, idxs)
+    spatially_interpolated = spatially_interpolate(args, allvars, idxs)
 
     pressure_levs = idxs['ht']['vals']
     logger.write('era_pl: ' + str(pressure_levs))
+    logger.write('z: ' +
+                 str(spatially_interpolated['Z'][0, :].flatten().tolist()))
     eta_theta = h.get_eta_theta(base)
     logger.write('eta_theta: ' + str(eta_theta))
     eta_rho = h.get_eta_rho(base)
     logger.write('eta_rho: ' + str(eta_rho))
 
-    out_data = vertically_interpolate(spacially_interpolated, eta_theta,
+    out_data = vertically_interpolate(spatially_interpolated, eta_theta,
                                       eta_rho, pressure_levs)
     template = f90nml.read(args.template)
 
