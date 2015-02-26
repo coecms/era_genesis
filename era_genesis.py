@@ -230,13 +230,13 @@ def replace_namelist(template, out_data, base, args):
     return_namelist['inobsfor']['l_windrlx'] = l_windrlx
     return_namelist['cntlscm']['nfor'] = args.num
 
-    print( "l_windrlx: {}".format(l_windrlx))
+    print("l_windrlx: {}".format(l_windrlx))
 
     if l_windrlx:
         if base['usrfields_2']['tau_rlx']:
             return_namelist['inobsfor']['tau_rlx'] = args.intervall.seconds
         if base['usrfields_2']['u_inc']:
-            return_namelist['inobsfor']['u_inc'] = '' #out_data['U'].tolist()
+            return_namelist['inobsfor']['u_inc'] = 'not implemented yet'
         if base['usrfields_2']['v_inc']:
             return_namelist['inobsfor']['v_inc'] = 'not implemented yet'
         if base['usrfields_2']['w_inc']:
@@ -247,7 +247,7 @@ def replace_namelist(template, out_data, base, args):
             return_namelist['inobsfor']['q_star'] = 'not implemented yet'
     else:
         if base['usrfields_2']['u_inc']:
-            return_namelist['inobsfor']['u_inc'] = out_data['U'].flatten().tolist()
+            return_namelist['inobsfor']['u_inc'] = 'not implemented yet'
         if base['usrfields_2']['v_inc']:
             return_namelist['inobsfor']['v_inc'] = 'not implemented yet'
         if base['usrfields_2']['w_inc']:
@@ -258,15 +258,19 @@ def replace_namelist(template, out_data, base, args):
             return_namelist['inobsfor']['q_star'] = 'not implemented yet'
 
     if base['usrfields_1']['ui']:
-        return_namelist['inprof']['ui'] = 'not implemented yet'
+        return_namelist['inprof']['ui'] = \
+            out_data['U'][0, :].flatten(order='F').tolist()
     if base['usrfields_1']['vi']:
-        return_namelist['inprof']['vi'] = 'not implemented yet'
+        return_namelist['inprof']['vi'] = \
+            out_data['V'][0, :].flatten(order='F').tolist()
     if base['usrfields_1']['wi']:
         return_namelist['inprof']['wi'] = 'not implemented yet'
     if base['usrfields_1']['theta']:
-        return_namelist['inprof']['theta'] = 'not implemented yet'
+        return_namelist['inprof']['theta'] = \
+            out_data['T'][0, :].flatten(order='F').tolist()
     if base['usrfields_1']['qi']:
-        return_namelist['inprof']['qi'] = 'not implemented yet'
+        return_namelist['inprof']['qi'] = \
+            out_data['Q'][0, :].flatten(order='F').tolist()
     if base['usrfields_1']['p_in']:
         return_namelist['inprof']['p_in'] = 'not implemented yet'
 
