@@ -532,7 +532,7 @@ def main():
 
     out_namelist = replace_namelist(template, out_data, base, args)
 
-    out_namelist.write(args.output)
+    out_namelist.write(args.output, force=True)
 
 
 if __name__ == '__main__':
