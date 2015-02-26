@@ -529,8 +529,11 @@ def main():
     spacially_interpolated = spacially_interpolate(args, allvars, idxs)
 
     pressure_levs = idxs['ht']['vals']
+    logger.write('era_pl: ' + str(pressure_levs))
     eta_theta = h.get_eta_theta(base)
+    logger.write('eta_theta: ' + str(eta_theta))
     eta_rho = h.get_eta_rho(base)
+    logger.write('eta_rho: ' + str(eta_rho))
 
     out_data = vertically_interpolate(spacially_interpolated, eta_theta,
                                       eta_rho, pressure_levs)
