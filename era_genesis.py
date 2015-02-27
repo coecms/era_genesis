@@ -169,41 +169,27 @@ def calc_p_in(geopotential, msl_array, eta_rho, levs_in):
     """
 
     from genesis_globals import grav, rho, maxz
-    import genesis_helpers as h
 
-    ntheta = len(eta_rho)+1
-    theta = np.zeros((0, ntheta))
-    # Loop over time steps
+    zzr = np.concatenate((eta_rho, np.array([maxz])))
+    p_in = np.zeros((0, len(zzr)))
+
     for z, msl in zip(geopotential, msl_array):
-        theta_col = np.zeros((1, ntheta))
-        zzr_lt_z0 = list(eta_rho < z[0]) + [False]
-        zzr_gt_zl = list(eta_rho > z[-1]) + [False]
-        zzr_else = [not (b or c) for b, c in zip(zzr_lt_z0, zzr_gt_zl)]
-        zzr_else[-1] = False
 
-#        for i in range(ntheta-1):
-#            if zzr_lt_z0[i]:
-#                dp = -1 * (rho*grav) * eta_rho[i]
-#                theta_col[0, i] = msl + dp
-#            elif zzr_gt_zl[i]:
-#                fact = (eta_rho[i] - z[-1]) / (maxz - z[-1])
-#                theta_col[0, i] = levs_in[-1] * (1.0 - fact)
-#            else:
-#                idx1, idx2 = h.find_nearest_indices(z, eta_rho[i])
-#                fct1, fct2 = h.find_fractions(eta_rho[i], z[idx1], z[idx2])
-#                theta_col[0, i] = fct1 * levs_in[idx1] + fct2 * levs_in[idx2]
+        p_line = np.zeros((1, len(zzr)))
 
-        theta_col[0, zzr_lt_z0] = \
-            msl - rho * grav * eta_rho[zzr_lt_z0]
-        theta_col[0, zzr_gt_zl] = \
-            levs_in[-1] * (1.0 - (eta_rho[zzr_gt_zl] - z[-1])/(maxz - z[-1]))
-        theta_col[0, zzr_else] = \
-            h.interpolate(eta_rho[zzr_else], z, levs_in)
-        theta_col[0, -1] = 100.0
+        xp = np.concatenate(
+            np.array([0, 0.999*z[0]]), z, np.array([maxz])
+        )
+        yp = np.concatenate(
+            np.array([msl, msl-rho*grav*0.999*z[0]]),
+            levs_in, np.array([100.])
+        )
 
-        theta = np.concatenate((theta, theta_col), axis=0)
+        p_line[0, :] = np.interp(zzr, xp, yp)
 
-    return theta
+        p_in = np.concatenate((p_in, p_line))
+
+    return p_in
 
 
 def spatially_interpolate(args, read_vars, idxs):
