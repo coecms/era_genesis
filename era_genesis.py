@@ -579,21 +579,21 @@ def main():
     allvars = read_all_data(args, idxs)
     allvars, idxs, units = clean_all_vars(args, allvars, idxs, units)
 
-    spatially_interpolated = spatially_interpolate(args, allvars, idxs)
+    allvars_si = spatially_interpolate(args, allvars, idxs)
 
     pressure_levs = idxs['ht']['vals']
     logger.write('era_pl: ' + str(pressure_levs))
     logger.write('z: ' +
-                 str(spatially_interpolated['Z'][0, :].flatten().tolist()))
+                 str(allvars_si['Z'][0, :].flatten().tolist()))
     eta_theta = h.get_eta_theta(base)
     logger.write('eta_theta: ' + str(eta_theta))
     eta_rho = h.get_eta_rho(base)
     logger.write('eta_rho: ' + str(eta_rho))
 
-    out_data = vertically_interpolate(spatially_interpolated, eta_theta,
+    out_data = vertically_interpolate(allvars_si, eta_theta,
                                       eta_rho, pressure_levs)
 
-    out_data['p_in'] = calc_p_in(out_data['Z'], out_data['P'].flatten(),
+    out_data['p_in'] = calc_p_in(allvars_si['Z'], out_data['P'].flatten(),
                                  eta_rho, idxs['ht']['vals'])
 
     template = f90nml.read(args.template)
