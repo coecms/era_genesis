@@ -194,7 +194,7 @@ def calc_p_in(geopotential, msl_array, eta_rho, levs_in):
 #                theta_col[0, i] = fct1 * levs_in[idx1] + fct2 * levs_in[idx2]
 
         theta_col[0, zzr_lt_z0] = \
-            msl[zzr_lt_z0] - rho * grav * eta_rho[zzr_lt_z0]
+            msl - rho * grav * eta_rho[zzr_lt_z0]
         theta_col[0, zzr_gt_zl] = \
             levs_in[-1] * (1.0 - (eta_rho[zzr_gt_zl] - z[-1])/(maxz - z[-1]))
         theta_col[0, zzr_else] = \
