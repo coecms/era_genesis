@@ -593,7 +593,7 @@ def main():
     out_data = vertically_interpolate(allvars_si, eta_theta,
                                       eta_rho, pressure_levs)
 
-    out_data['p_in'] = calc_p_in(allvars_si['Z'], out_data['P'].flatten(),
+    out_data['p_in'] = calc_p_in(allvars_si['Z'], allvars_si['P'].flatten(),
                                  eta_rho, idxs['ht']['vals'])
 
     template = f90nml.read(args.template)
