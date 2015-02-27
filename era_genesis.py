@@ -133,8 +133,11 @@ def clean_all_vars(args, all_vars, idxs, units):
         1) ensures that the height dimension is in Pascals
         2) ensures that the surface pressure is in Pascals
         3) ensures that the height dimension is ascending
+        4) ensures that the z-variable is in m
 
     """
+
+    from genesis_global import grav
 
     if units['P'] == 'hPa':
         all_vars['P'] = 100.0 * all_vars['P']
@@ -154,13 +157,17 @@ def clean_all_vars(args, all_vars, idxs, units):
         for var in ['U', 'V', 'T', 'Z', 'Q']:
             all_vars[var][:, :, :, :] = all_vars[var][:, ::-1, :, :]
 
+    if units['Z'] != 'm':
+        all_vars['Z'] = all_vars['Z'] / grav
+        units['Z'] = 'm'
+
     return all_vars, idxs, units
 
 
-def calc_p_in(geopotential, msl_array, eta_rho, levs_in):
+def calc_p_in(z_in, msl_array, eta_rho, levs_in):
     """(array, array, array, array) -> array
 
-    geopotential: What's read as Z in the input files, shape (nrecs, nlvls_in)
+    z_in: Z in the input files, but in m, shape (nrecs, nlvls_in)
     msl_array: What's read as P in the input files, shape (nrecs)
     eta_rho: From base.inp, eta_rho * z_top_of_model + z_terrain_asl
     levs_in: height values from netCDF files, shape (nlvls_in)
@@ -173,7 +180,7 @@ def calc_p_in(geopotential, msl_array, eta_rho, levs_in):
     zzr = np.concatenate((eta_rho, np.array([maxz])))
     p_in = np.zeros((0, len(zzr)))
 
-    for z, msl in zip(geopotential, msl_array):
+    for z, msl in zip(z_in, msl_array):
 
         p_line = np.zeros((1, len(zzr)))
 
