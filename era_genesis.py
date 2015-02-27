@@ -178,12 +178,12 @@ def calc_p_in(geopotential, msl_array, eta_rho, levs_in):
         p_line = np.zeros((1, len(zzr)))
 
         xp = np.concatenate(
-            np.array([0, 0.999*z[0]]), z, np.array([maxz])
+            (np.array([0, 0.999*z[0]]), z, np.array([maxz]))
         )
-        yp = np.concatenate(
+        yp = np.concatenate((
             np.array([msl, msl-rho*grav*0.999*z[0]]),
             levs_in, np.array([100.])
-        )
+        ))
 
         p_line[0, :] = np.interp(zzr, xp, yp)
 
