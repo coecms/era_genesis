@@ -137,7 +137,7 @@ def clean_all_vars(args, all_vars, idxs, units):
 
     """
 
-    from genesis_global import grav
+    from genesis_globals import grav
 
     if units['P'] == 'hPa':
         all_vars['P'] = 100.0 * all_vars['P']
@@ -197,6 +197,24 @@ def calc_p_in(z_in, msl_array, eta_rho, levs_in):
         p_in = np.concatenate((p_in, p_line))
 
     return p_in
+
+
+def calc_qi(q_in, theta_levs, levs_in):
+    """
+    q_in: specific humidity read from the ERA-Interim files
+    theta_levs: theta-levels [m]
+    levs_in: levels on ERA-Interim files [m]
+    """
+
+    ntheta = len(theta_levs)
+
+    qi = np.empty((0, ntheta))
+
+    for q, q_um in zip(q_in, qi):
+        q_um = np.interp(theta_levs, levs_in, q, right=q[0])
+        qi = np.concatenate((qi, q_um[np.newaxis, :]), axis=0)
+
+    return qi
 
 
 def spatially_interpolate(args, read_vars, idxs):
@@ -316,7 +334,7 @@ def replace_namelist(template, out_data, base, args):
     if base['usrfields_1']['theta']:
         inprof['theta'] = out_data['T'][0, :].flatten(order='F').tolist()
     if base['usrfields_1']['qi']:
-        inprof['qi'] = out_data['Q'][0, :].flatten(order='F').tolist()
+        inprof['qi'] = out_data['qi'][0, :].flatten(order='F').tolist()
     if base['usrfields_1']['p_in']:
         inprof['p_in'] = out_data['p_in'][0, :].flatten(order='F').tolist()
 
@@ -588,6 +606,7 @@ def main():
 
     out_data['p_in'] = calc_p_in(allvars_si['Z'], allvars_si['P'].flatten(),
                                  eta_rho, idxs['ht']['vals'])
+    out_data['qi'] = calc_qi(allvars_si['Q'], eta_theta, idxs['ht']['vals'])
 
     template = f90nml.read(args.template)
 
