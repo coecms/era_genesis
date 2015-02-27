@@ -210,7 +210,7 @@ def calc_qi(q_in, theta_levs, levs_in):
 
     qi = np.empty((0, ntheta))
 
-    for q, q_um in zip(q_in, qi):
+    for q in q_in:
         q_um = np.interp(theta_levs, levs_in, q, right=q[0])
         qi = np.concatenate((qi, q_um[np.newaxis, :]), axis=0)
 
