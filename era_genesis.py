@@ -176,9 +176,9 @@ def calc_p_in(geopotential, msl_array, eta_rho, levs_in):
     # Loop over time steps
     for z, msl in zip(geopotential, msl_array):
         theta_col = np.zeros((1, ntheta))
-        zzr_lt_z0 = np.append(eta_rho < z[0], False)
-        zzr_gt_zl = np.append(eta_rho > z[-1], False)
-        zzr_else = not (zzr_lt_z0 or zzr_gt_zl)
+        zzr_lt_z0 = list(eta_rho < z[0]) + [False]
+        zzr_gt_zl = list(eta_rho > z[-1]) + [False]
+        zzr_else = [not (b or c) for b, c in zip(zzr_lt_z0, zzr_gt_zl)]
         zzr_else[-1] = False
 
 #        for i in range(ntheta-1):
