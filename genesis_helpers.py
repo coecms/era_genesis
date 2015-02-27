@@ -22,6 +22,8 @@ def find_nearest_indices(array, val):
     [2, 3]
     >>> find_nearest_indices(np.arange(-3, 4), 1.2)
     [4, 5]
+    >>> find_nearest_indices(np.arange(4, -3, -1), 1.2)
+    [3, 2]
     """
 
     ascending = (array[0] < array[-1])
@@ -60,6 +62,30 @@ def find_fractions(target, val1, val2):
 
     frac = float(target - val2) / float(val1 - val2)
     return [frac, 1.-frac]
+
+
+def interpolate(target_x, x_array, y_array):
+    """(numeric, array, array) -> numeric
+
+    >>> interpolate(1.5, np.arange(4), np.arange(4)*2)
+    3.0
+    >>> interpolate(7.2, np.arange(10), np.arange(2, 12))
+    9.2
+    >>> interpolate([1.5, 7.2], np.arange(10), 2. * np.arange(10))
+    [3.0, 14.4]
+    >>> interpolate(np.array([1.5, 7.2]), np.arange(10), np.arange(10, 20))
+    array([ 11.5,  17.2])
+    """
+
+    if type(target_x) == list:
+        return [interpolate(x, x_array, y_array) for x in target_x]
+    if type(target_x) == np.ndarray:
+        return np.array(interpolate(target_x.tolist(), x_array, y_array))
+
+    idx1, idx2 = find_nearest_indices(x_array, target_x)
+    fct1, fct2 = find_fractions(target_x, x_array[idx1], x_array[idx2])
+
+    return fct1 * y_array[idx1] + fct2 * y_array[idx2]
 
 
 def radian(angle):
