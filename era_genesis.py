@@ -157,6 +157,55 @@ def clean_all_vars(args, all_vars, idxs, units):
     return all_vars, idxs, units
 
 
+def calc_p_in(geopotential, msl_array, eta_rho, levs_in):
+    """(array, array, array, array) -> array
+
+    geopotential: What's read as Z in the input files, shape (nrecs, nlvls_in)
+    msl_array: What's read as P in the input files, shape (nrecs)
+    eta_rho: From base.inp, eta_rho * z_top_of_model + z_terrain_asl
+    levs_in: height values from netCDF files, shape (nlvls_in)
+
+    Calculates pressure profile
+    """
+
+    from genesis_globals import grav, rho, maxz
+    import genesis_helpers as h
+
+    ntheta = len(eta_rho)+1
+    theta = np.zeros((0, ntheta))
+    # Loop over time steps
+    for z, msl in zip(geopotential, msl_array):
+        theta_col = np.zeros((1, ntheta))
+        zzr_lt_z0 = np.append(eta_rho < z[0], False)
+        zzr_gt_zl = np.append(eta_rho > z[-1], False)
+        zzr_else = not (zzr_lt_z0 or zzr_gt_zl)
+        zzr_else[-1] = False
+
+#        for i in range(ntheta-1):
+#            if zzr_lt_z0[i]:
+#                dp = -1 * (rho*grav) * eta_rho[i]
+#                theta_col[0, i] = msl + dp
+#            elif zzr_gt_zl[i]:
+#                fact = (eta_rho[i] - z[-1]) / (maxz - z[-1])
+#                theta_col[0, i] = levs_in[-1] * (1.0 - fact)
+#            else:
+#                idx1, idx2 = h.find_nearest_indices(z, eta_rho[i])
+#                fct1, fct2 = h.find_fractions(eta_rho[i], z[idx1], z[idx2])
+#                theta_col[0, i] = fct1 * levs_in[idx1] + fct2 * levs_in[idx2]
+
+        theta_col[0, zzr_lt_z0] = \
+            msl[zzr_lt_z0] - rho * grav * eta_rho[zzr_lt_z0]
+        theta_col[0, zzr_gt_zl] = \
+            levs_in[-1] * (1.0 - (eta_rho[zzr_gt_zl] - z[-1])/(maxz - z[-1]))
+        theta_col[0, zzr_else] = \
+            h.interpolate(eta_rho[zzr_else], z, levs_in)
+        theta_col[0, -1] = 100.0
+
+        theta = np.concatenate((theta, theta_col), axis=0)
+
+    return theta
+
+
 def spatially_interpolate(args, read_vars, idxs):
     """( Namelist, dict, dict ) -> dict
 
@@ -276,7 +325,7 @@ def replace_namelist(template, out_data, base, args):
     if base['usrfields_1']['qi']:
         inprof['qi'] = out_data['Q'][0, :].flatten(order='F').tolist()
     if base['usrfields_1']['p_in']:
-        inprof['p_in'] = 'not implemented yet'
+        inprof['p_in'] = out_data['p_in'][0, :].flatten(order='F').tolist()
 
     indata['lat'] = args.lat
     indata['long'] = args.lon
@@ -543,6 +592,10 @@ def main():
 
     out_data = vertically_interpolate(spatially_interpolated, eta_theta,
                                       eta_rho, pressure_levs)
+
+    out_data['p_in'] = calc_p_in(out_data['Z'], out_data['P'].flatten(),
+                                 eta_rho, idxs['ht']['vals'])
+
     template = f90nml.read(args.template)
 
     out_namelist = replace_namelist(template, out_data, base, args)
