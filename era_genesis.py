@@ -521,6 +521,18 @@ def write_genesis(allvars, levs, file_name='genesis.csv'):
         genesis.write(format_header.format(
             'Z', 'levs', 't', 'pt', 'q', 'u', 'v', 'ug', 'vg'
         ))
+        w_dict = {
+            'z' : 0.0,
+            'levs' : allvars['P'][0, 0],
+            't' : allvars['T'][0, 0],
+            'pt' : 0.0,
+            'q' : allvars['Q'][0, 0],
+            'u' : allvars['U'][0, 0],
+            'v' : allvars['V'][0, 0],
+            'ug' : 0.0,
+            'vg' : 0.0
+        }
+        genesis.write(format_data.format(**w_dict))
         for i in range(allvars['U'].shape[1]):
             w_dict = {
                 'z' : allvars['Z'][0, i],
@@ -535,8 +547,6 @@ def write_genesis(allvars, levs, file_name='genesis.csv'):
             }
             genesis.write(format_data.format(**w_dict))
     genesis.close()
-
-
 
 
 def cleanup_args(args, base):
