@@ -511,6 +511,34 @@ def write_charney(out_vars, levs, file_name='charney.csv'):
     charney.close()
 
 
+def write_genesis(allvars, levs, file_name='genesis.csv'):
+
+    format_header='{:>9},{:>9},{:>8},{:>8},{:>12},{:>8},{:>8},{:>8},{:>8}\n'
+    format_data='{z:9.0f},{levs:9.0f},{t:8.2f},{pt:8.2f},{q:12.5e},' + \
+        '{u:8.2f},{v:8.2f},{ug:8.2f},{vg:8.2f}\n'
+
+    with open(file_name, 'w') as genesis:
+        genesis.write(format_header.format(
+            'Z', 'levs', 't', 'pt', 'q', 'u', 'v', 'ug', 'vg'
+        ))
+        for i in range(allvars['U'].shape[1]):
+            w_dict = {
+                'z' : allvars['Z'][0, i],
+                'levs' : levs[i],
+                't' : allvars['T'][0, i],
+                'pt' : 0.0,
+                'q' : allvars['Q'][0, i],
+                'u' : allvars['U'][0, i],
+                'v' : allvars['V'][0, i],
+                'ug' : 0.0,
+                'vg' : 0.0
+            }
+            genesis.write(format_data.format(**w_dict))
+    genesis.close()
+
+
+
+
 def cleanup_args(args, base):
     """(Namelist, dict of dict) -> Namelist
 
@@ -664,6 +692,7 @@ def main():
     out_data['qi'] = calc_qi(allvars_si['Q'], eta_theta, levs)
     out_data['theta'] = calc_theta(allvars_si['T'], levs, eta_theta)
 
+    write_genesis(allvars_si, levs)
     write_charney(out_data, levs)
 
     template = f90nml.read(args.template)
