@@ -211,7 +211,7 @@ def calc_qi(q_in, theta_levs, levs_in):
     qi = np.empty((0, ntheta))
 
     for q in q_in:
-        q_um = np.interp(theta_levs, levs_in, q, right=q[0])
+        q_um = np.interp(-theta_levs, -levs_in, q, right=q[0])
         qi = np.concatenate((qi, q_um[np.newaxis, :]), axis=0)
 
     return qi
@@ -227,12 +227,12 @@ def calc_theta(temperature, levs, eta_theta):
 
     ntheta = len(eta_theta)
     theta = np.empty((0, ntheta))
+    pt = np.empty(len(levs))
 
     for t in temperature:
         pt = t * (1e5/levs)**rcp
-        pt_um = np.interp(eta_theta, levs, pt)
+        pt_um = np.interp(-eta_theta, -levs, pt, left=0., right=1.)
         theta = np.concatenate((theta, pt_um[np.newaxis, :]), axis=0)
-
     return theta
 
 
