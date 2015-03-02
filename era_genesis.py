@@ -477,6 +477,39 @@ def get_end_date(args, base):
     return read_date_from_args(date_string)
 
 
+def write_charney(out_vars, levs, file_name='charney.csv'):
+    """writes the data like genesis' charney.scm, except in csv format
+    """
+
+    format_data = '{p_um:f9.0},{adum:f9.2},{t_um:f9.2},{pt_um:e12.5},' + \
+        '{q_um:f8.2},{u_um:f8.2},{v_um:f8.2}'
+    format_header = '{p_um:9},{adum:9},{t_um:9},{pt_um:9},{q_um:8},' + \
+        '{u_um:8},{v_um:8}'
+    with open(file_name) as charney:
+        w_dict = {
+            'p_um': "p_in",
+            'adum': "pres.lvl",
+            't_um': "temp",
+            'pt_um': "theta",
+            'q_um': "sp. hum.",
+            'u_um': "Wind U",
+            'v_um': "Wind V"
+        }
+        charney.write(format_header.format(**w_dict))
+        for i in range(out_vars['theta'].shape[1]):
+            w_dict = {
+                'p_um': 0.0,
+                'adum': 0.0,
+                't_um': 0.0,
+                'pt_um': 0.0,
+                'q_um': 0.0,
+                'u_um': 0.0,
+                'v_um': 0.0
+            }
+            charney.write(format_data.format(**w_dict))
+    charney.close()
+
+
 def cleanup_args(args, base):
     """(Namelist, dict of dict) -> Namelist
 
@@ -629,6 +662,8 @@ def main():
                                  eta_rho, levs)
     out_data['qi'] = calc_qi(allvars_si['Q'], eta_theta, levs)
     out_data['theta'] = calc_theta(allvars_si['T'], levs, eta_theta)
+
+    write_charney(out_data, levs)
 
     template = f90nml.read(args.template)
 
