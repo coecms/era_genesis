@@ -481,11 +481,11 @@ def write_charney(out_vars, levs, file_name='charney.csv'):
     """writes the data like genesis' charney.scm, except in csv format
     """
 
-    format_data = '{p_um:f9.0},{adum:f9.2},{t_um:f9.2},{pt_um:e12.5},' + \
-        '{q_um:f8.2},{u_um:f8.2},{v_um:f8.2}'
-    format_header = '{p_um:9},{adum:9},{t_um:9},{pt_um:9},{q_um:8},' + \
-        '{u_um:8},{v_um:8}'
-    with open(file_name) as charney:
+    format_data = '{p_um:9.0f},{adum:9.0f},{t_um:9},{pt_um:9.2f},' + \
+        '{q_um:12.5e},{u_um:8},{v_um:8}\n'
+    format_header = '{p_um:>9},{adum:>9},{t_um:>9},{pt_um:>9},{q_um:>12},' + \
+        '{u_um:>8},{v_um:>8}\n'
+    with open(file_name, 'w') as charney:
         w_dict = {
             'p_um': "p_in",
             'adum': "pres.lvl",
@@ -498,11 +498,11 @@ def write_charney(out_vars, levs, file_name='charney.csv'):
         charney.write(format_header.format(**w_dict))
         for i in range(out_vars['theta'].shape[1]):
             w_dict = {
-                'p_um': 0.0,
-                'adum': 0.0,
+                'p_um': out_vars['p_in'][-1, i],
+                'adum': levs[i] if i < len(levs) else 0.0,
                 't_um': 0.0,
-                'pt_um': 0.0,
-                'q_um': 0.0,
+                'pt_um': out_vars['theta'][-1, i],
+                'q_um': out_vars['qi'][-1, i],
                 'u_um': 0.0,
                 'v_um': 0.0
             }
