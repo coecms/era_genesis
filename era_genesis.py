@@ -217,6 +217,25 @@ def calc_qi(q_in, theta_levs, levs_in):
     return qi
 
 
+def calc_theta(temperature, levs, eta_theta):
+    """(temperature, levs, theta_levs) -> theta array
+
+    calculates the potential temperature profile.
+    """
+
+    from genesis_globals import rcp
+
+    ntheta = len(eta_theta)
+    theta = np.empty((0, ntheta))
+
+    for t in temperature:
+        pt = t * (1e5/levs)**rcp
+        pt_um = np.interp(eta_theta, levs, pt)
+        theta = np.concatenate((theta, pt_um[np.newaxis, :]), axis=0)
+
+    return theta
+
+
 def spatially_interpolate(args, read_vars, idxs):
     """( Namelist, dict, dict ) -> dict
 
@@ -332,7 +351,7 @@ def replace_namelist(template, out_data, base, args):
     if base['usrfields_1']['wi']:
         inprof['wi'] = 'not implemented yet'
     if base['usrfields_1']['theta']:
-        inprof['theta'] = out_data['T'][0, :].flatten(order='F').tolist()
+        inprof['theta'] = out_data['theta'][0, :].flatten(order='F').tolist()
     if base['usrfields_1']['qi']:
         inprof['qi'] = out_data['qi'][0, :].flatten(order='F').tolist()
     if base['usrfields_1']['p_in']:
@@ -604,9 +623,12 @@ def main():
     out_data = vertically_interpolate(allvars_si, eta_theta,
                                       eta_rho, pressure_levs)
 
+    levs = idxs['ht']['vals']
+
     out_data['p_in'] = calc_p_in(allvars_si['Z'], allvars_si['P'].flatten(),
-                                 eta_rho, idxs['ht']['vals'])
-    out_data['qi'] = calc_qi(allvars_si['Q'], eta_theta, idxs['ht']['vals'])
+                                 eta_rho, levs)
+    out_data['qi'] = calc_qi(allvars_si['Q'], eta_theta, levs)
+    out_data['theta'] = calc_theta(allvars_si['T'], levs, eta_theta)
 
     template = f90nml.read(args.template)
 
