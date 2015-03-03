@@ -238,58 +238,23 @@ def calc_p_in(z_in, msl_array, eta_rho, levs_in):
     return p_in
 
 
-def calc_wind(wind_in, z_out, z_in):
-    """Calculates the wind
+def vert_interp(var_in, z_in, z_out):
+    """Makes a vertical interpolation of the variable var_in
 
     Input:
-        wind_in: u or v, depending on which you want, on ERA-Interim levels
+        var_in: variable to be interpolated, dimensions (nrec, nlvls)
         z_out: eta_rho levels of the um
         z_in: Z levels of the ERA-Interim
 
     """
 
-    wind_out = np.empty((0, len(z_out)))
+    var_out = np.empty((0, len(z_out)))
 
-    for w, z in zip(wind_in, z_in):
-        w_um = np.interp(z_out, z, w)
-        wind_out = np.concatenate((wind_out, w_um[np.newaxis, :]), axis=0)
+    for v, z in zip(var_in, z_in):
+        v_um = np.interp(z_out, z, v)
+        var_out = np.concatenate((var_out, v_um[np.newaxis, :]), axis=0)
 
-    return wind_out
-
-def calc_qi(q_in, theta_levs, z_in):
-    """
-    q_in: specific humidity read from the ERA-Interim files
-    theta_levs: theta-levels [m]
-    z_in: levels on ERA-Interim files [m]
-    """
-
-    ntheta = len(theta_levs)
-
-    qi = np.empty((0, ntheta))
-
-    for q, z in zip(q_in, z_in):
-        q_um = np.interp(theta_levs, z, q, right=q[0])
-        qi = np.concatenate((qi, q_um[np.newaxis, :]), axis=0)
-
-    return qi
-
-
-def calc_theta(pt_in, levs, eta_theta):
-    """(temperature, levs, theta_levs) -> theta array
-
-    calculates the potential temperature profile.
-    """
-
-    from genesis_globals import rcp
-
-    ntheta = len(eta_theta)
-    theta = np.empty((0, ntheta))
-
-    for pt, z in zip(pt_in, levs):
-        pt_um = np.interp(eta_theta, z, pt, left=0., right=1.)
-        theta = np.concatenate((theta, pt_um[np.newaxis, :]), axis=0)
-
-    return theta
+    return var_out
 
 
 def spatially_interpolate(args, read_vars, idxs):
@@ -323,28 +288,6 @@ def spatially_interpolate(args, read_vars, idxs):
 
     return_dict['dx'] = dx
     return_dict['dy'] = dy
-
-    return return_dict
-
-
-def vertically_interpolate(data_in, eta_theta, eta_rho, orig_levs):
-    """(dict, array, array) -> dict
-
-    """
-
-    return_dict = {
-        'eta_theta': eta_theta,
-        'eta_rho': eta_rho
-    }
-
-    theta_converter = h.calc_ht_conversion(orig_levs, eta_theta)
-    rho_converter = h.calc_ht_conversion(orig_levs, eta_rho)
-
-    for v in ['T', 'Q']:
-        return_dict[v] = h.convert_height(data_in[v], theta_converter)
-
-    for v in ['U', 'V']:
-        return_dict[v] = h.convert_height(data_in[v], rho_converter)
 
     return return_dict
 
@@ -399,9 +342,9 @@ def replace_namelist(template, out_data, base, args):
             inobsfor['q_star'] = 'not implemented yet'
 
     if base['usrfields_1']['ui']:
-        inprof['ui'] = out_data['U'][0, :].flatten(order='F').tolist()
+        inprof['ui'] = out_data['u'][0, :].flatten(order='F').tolist()
     if base['usrfields_1']['vi']:
-        inprof['vi'] = out_data['V'][0, :].flatten(order='F').tolist()
+        inprof['vi'] = out_data['v'][0, :].flatten(order='F').tolist()
     if base['usrfields_1']['wi']:
         inprof['wi'] = 'not implemented yet'
     if base['usrfields_1']['theta']:
@@ -551,11 +494,11 @@ def write_charney(out_vars, levs, file_name='charney.csv'):
         }
         charney.write(format_header.format(**w_dict))
         for i in range(out_vars['theta'].shape[1]):
-            rho_lev = i < out_vars['U'].shape[1]
+            rho_lev = i < out_vars['u'].shape[1]
             w_dict = {
                 'p_um': out_vars['p_in'][-1, i],
                 'adum': levs[i] if i < len(levs) else 0.0,
-                't_um': out_vars['T'][-1, i] if rho_lev else 0.0,
+                't_um': out_vars['t'][-1, i],
                 'pt_um': out_vars['theta'][-1, i],
                 'q_um': out_vars['qi'][-1, i],
                 'u_um': out_vars['u'][-1, i] if rho_lev else 0.0,
@@ -746,25 +689,26 @@ def main():
         allvars['Z'][:, :, 0, :], allvars_si['dx'], args.lat
         )
 
-    logger.write('era_pl: ' + str(pressure_levs))
-    logger.write('z: ' +
-                 str(allvars_si['Z'][0, :].flatten().tolist()))
     eta_theta = h.get_eta_theta(base)
-    logger.write('eta_theta: ' + str(eta_theta))
     eta_rho = h.get_eta_rho(base)
+    z_in = allvars_si['Z']
+    logger.write('era_pl: ' + str(pressure_levs))
+    logger.write('eta_theta: ' + str(eta_theta))
     logger.write('eta_rho: ' + str(eta_rho))
+    logger.write('z_in: ' +
+                 str(z_in[0, :].flatten().tolist()))
 
-    out_data = vertically_interpolate(allvars_si, eta_theta,
-                                      eta_rho, pressure_levs)
+    out_data = {}
 
     levs = idxs['ht']['vals']
 
     out_data['p_in'] = calc_p_in(allvars_si['Z'], allvars_si['P'].flatten(),
                                  eta_rho, levs)
-    out_data['qi'] = calc_qi(allvars_si['Q'], eta_theta, allvars_si['Z'])
-    out_data['theta'] = calc_theta(allvars_si['pt'], allvars_si['Z'], eta_theta)
-    out_data['u'] = calc_wind(allvars_si['U'], eta_rho, allvars_si['Z'])
-    out_data['v'] = calc_wind(allvars_si['V'], eta_rho, allvars_si['Z'])
+    out_data['qi'] = vert_interp(allvars_si['Q'], z_in, eta_theta)
+    out_data['theta'] = vert_interp(allvars_si['pt'], z_in, eta_theta)
+    out_data['u'] = vert_interp(allvars_si['U'], z_in, eta_rho)
+    out_data['v'] = vert_interp(allvars_si['V'], z_in, eta_rho)
+    out_data['t'] = vert_interp(allvars_si['T'], z_in, eta_theta)
 
     write_genesis(allvars_si, levs)
     write_charney(out_data, levs)
