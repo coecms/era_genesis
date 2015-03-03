@@ -302,7 +302,7 @@ def replace_namelist(template, out_data, base, args):
     from copy import deepcopy
     from genesis_globals import omg
 
-    f = 2 * omg * np.sin(lat * np.pi / 180.)
+    f = 2 * omg * np.sin(args.lat * np.pi / 180.)
     fact = 24 / (args.intervall.total_seconds() / 3600.0)
 
     return_namelist = deepcopy(template)
