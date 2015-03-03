@@ -267,9 +267,10 @@ def calc_theta(pt_in, levs, eta_theta):
     ntheta = len(eta_theta)
     theta = np.empty((0, ntheta))
 
-    for pt in pt_in:
-        pt_um = np.interp(eta_theta, levs[::-1], pt[::-1], left=0., right=1.)
+    for pt, z in zip(pt_in, levs):
+        pt_um = np.interp(eta_theta, z, pt, left=0., right=1.)
         theta = np.concatenate((theta, pt_um[np.newaxis, :]), axis=0)
+
     return theta
 
 
@@ -353,8 +354,6 @@ def replace_namelist(template, out_data, base, args):
 
     inobsfor['l_windrlx'] = l_windrlx
     return_namelist['cntlscm']['nfor'] = args.num
-
-    print("l_windrlx: {}".format(l_windrlx))
 
     if l_windrlx:
         if base['usrfields_2']['tau_rlx']:
@@ -745,7 +744,7 @@ def main():
     out_data['p_in'] = calc_p_in(allvars_si['Z'], allvars_si['P'].flatten(),
                                  eta_rho, levs)
     out_data['qi'] = calc_qi(allvars_si['Q'], eta_theta, levs)
-    out_data['theta'] = calc_theta(allvars_si['T'], levs, eta_theta)
+    out_data['theta'] = calc_theta(allvars_si['pt'], allvars_si['Z'], eta_theta)
 
     write_genesis(allvars_si, levs)
     write_charney(out_data, levs)
