@@ -256,7 +256,7 @@ def calc_qi(q_in, theta_levs, levs_in):
     return qi
 
 
-def calc_theta(temperature, levs, eta_theta):
+def calc_theta(pt_in, levs, eta_theta):
     """(temperature, levs, theta_levs) -> theta array
 
     calculates the potential temperature profile.
@@ -266,11 +266,9 @@ def calc_theta(temperature, levs, eta_theta):
 
     ntheta = len(eta_theta)
     theta = np.empty((0, ntheta))
-    pt = np.empty(len(levs))
 
-    for t in temperature:
-        pt = t * (1e5/levs)**rcp
-        pt_um = np.interp(-eta_theta, -levs, pt, left=0., right=1.)
+    for pt in pt_in:
+        pt_um = np.interp(eta_theta, levs[::-1], pt[::-1], left=0., right=1.)
         theta = np.concatenate((theta, pt_um[np.newaxis, :]), axis=0)
     return theta
 
