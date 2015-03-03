@@ -164,7 +164,6 @@ def clean_all_vars(args, all_vars, idxs, units):
     return all_vars, idxs, units
 
 
-
 def calc_pt_in(t_in, levs_in):
     """Calculates the potential temperatures on the ERA_Interim levels
 
@@ -529,8 +528,8 @@ def write_charney(out_vars, levs, file_name='charney.csv'):
 
 def write_genesis(allvars, levs, file_name='genesis.csv'):
 
-    format_header='{:>9},{:>9},{:>8},{:>8},{:>12},{:>8},{:>8},{:>8},{:>8}\n'
-    format_data='{z:9.0f},{levs:9.0f},{t:8.2f},{pt:8.2f},{q:12.5e},' + \
+    format_header = '{:>9},{:>9},{:>8},{:>8},{:>12},{:>8},{:>8},{:>8},{:>8}\n'
+    format_data = '{z:9.0f},{levs:9.0f},{t:8.2f},{pt:8.2f},{q:12.5e},' + \
         '{u:8.2f},{v:8.2f},{ug:8.2f},{vg:8.2f}\n'
 
     with open(file_name, 'w') as genesis:
@@ -538,28 +537,28 @@ def write_genesis(allvars, levs, file_name='genesis.csv'):
             'Z', 'levs', 't', 'pt', 'q', 'u', 'v', 'ug', 'vg'
         ))
         w_dict = {
-            'z' : 0.0,
-            'levs' : allvars['P'][0, 0],
-            't' : allvars['T'][0, 0],
-            'pt' : allvars['pt'][0, 0],
-            'q' : allvars['Q'][0, 0],
-            'u' : allvars['U'][0, 0],
-            'v' : allvars['V'][0, 0],
-            'ug' : 0.0,
-            'vg' : 0.0
+            'z': 0.0,
+            'levs': allvars['P'][0, 0],
+            't': allvars['T'][0, 0],
+            'pt': allvars['pt'][0, 0],
+            'q': allvars['Q'][0, 0],
+            'u': allvars['U'][0, 0],
+            'v': allvars['V'][0, 0],
+            'ug': 0.0,
+            'vg': 0.0
         }
         genesis.write(format_data.format(**w_dict))
         for i in range(allvars['U'].shape[1]):
             w_dict = {
-                'z' : allvars['Z'][0, i],
-                'levs' : levs[i],
-                't' : allvars['T'][0, i],
-                'pt' : allvars['pt'][0, i],
-                'q' : allvars['Q'][0, i],
-                'u' : allvars['U'][0, i],
-                'v' : allvars['V'][0, i],
-                'ug' : 0.0,
-                'vg' : 0.0
+                'z': allvars['Z'][0, i],
+                'levs': levs[i],
+                't': allvars['T'][0, i],
+                'pt': allvars['pt'][0, i],
+                'q': allvars['Q'][0, i],
+                'u': allvars['U'][0, i],
+                'v': allvars['V'][0, i],
+                'ug': 0.0,
+                'vg': 0.0
             }
             genesis.write(format_data.format(**w_dict))
     genesis.close()
