@@ -300,6 +300,10 @@ def replace_namelist(template, out_data, base, args):
     """
 
     from copy import deepcopy
+    from genesis_globals import omg
+
+    f = 2 * omg * np.sin(lat * np.pi / 180.)
+    fact = 24 / (args.intervall.total_seconds() / 3600.0)
 
     return_namelist = deepcopy(template)
 
@@ -331,9 +335,13 @@ def replace_namelist(template, out_data, base, args):
             inobsfor['q_star'] = 'not implemented yet'
     else:
         if base['usrfields_2']['u_inc']:
-            inobsfor['u_inc'] = 'not implemented yet'
+            inobsfor['u_inc'] = ((
+                out_data['u'][1:, :] - (f - 1.) * out_data['u'][:-1, :]
+            ) * fact).flatten().tolist()
         if base['usrfields_2']['v_inc']:
-            inobsfor['v_inc'] = 'not implemented yet'
+            inobsfor['v_inc'] = ((
+                out_data['v'][1:, :] - (f - 1.) * out_data['v'][:-1, :]
+            ) * fact).flatten().tolist()
         if base['usrfields_2']['w_inc']:
             inobsfor['w_inc'] = 'not implemented yet'
         if base['usrfields_2']['t_inc']:
