@@ -198,7 +198,7 @@ def calc_geostrophic_winds(z_in, dx, lat):
     g = np.empty((0, z_in.shape[1]))
     for z in z_in:
         dphidx = (z[:, 1] - z[:, 0]) / dx if dx > 0. else np.zeros_like(z[:, 0])
-        g = np.concatenate((g, (-1/f)*dphidx[np.newaxis, :]), axis=0)
+        g = np.concatenate((g, (1/f) * dphidx[np.newaxis, :]), axis=0)
 
     return g
 
@@ -302,7 +302,7 @@ def spatially_interpolate(args, read_vars, idxs):
 
     dy = h.surface_distance_y(*idxs['lat']['vals'])
     dx = h.surface_distance_x(*idxs['lon']['vals'],
-                              lat=idxs['lat']['vals'][1])
+                              lat=args.lat)
 
     return_dict['dx'] = dx
     return_dict['dy'] = dy
@@ -724,8 +724,8 @@ def main():
 
     pressure_levs = idxs['ht']['vals']
     allvars_si['pt'] = calc_pt_in(allvars_si['T'], pressure_levs)
-    allvars_si['ug'] = calc_geostrophic_winds(
-        allvars['Z'][:, :, :, 0], allvars_si['dy'], args.lon
+    allvars_si['ug'] = -calc_geostrophic_winds(
+        allvars['Z'][:, :, :, 1], allvars_si['dy'], args.lon
         )
     allvars_si['vg'] = calc_geostrophic_winds(
         allvars['Z'][:, :, 0, :], allvars_si['dx'], args.lat
