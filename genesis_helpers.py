@@ -23,7 +23,7 @@ def find_nearest_indices(array, val):
     >>> find_nearest_indices(np.arange(-3, 4), 1.2)
     [4, 5]
     >>> find_nearest_indices(np.arange(4, -3, -1), 1.2)
-    [3, 2]
+    [2, 3]
     """
 
     ascending = (array[0] < array[-1])
@@ -37,7 +37,7 @@ def find_nearest_indices(array, val):
     idx = np.abs(array-val).argmin()
 
     if ascending == (array[idx] > val):
-        return [idx, idx-1]
+        return [idx-1, idx]
     else:
         return [idx, idx+1]
 
