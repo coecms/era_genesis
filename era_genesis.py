@@ -336,12 +336,12 @@ def replace_namelist(template, out_data, base, args):
     else:
         if base['usrfields_2']['u_inc']:
             inobsfor['u_inc'] = ((
-                out_data['u'][1:, :] - (f - 1.) * out_data['u'][:-1, :]
-            ) * fact).flatten().tolist()
+                out_data['u'][1:, :] - (1.-f) * out_data['u'][:-1, :]
+            ) * fact).flatten(order='F').tolist()
         if base['usrfields_2']['v_inc']:
             inobsfor['v_inc'] = ((
-                out_data['v'][1:, :] - (f - 1.) * out_data['v'][:-1, :]
-            ) * fact).flatten().tolist()
+                out_data['v'][1:, :] - (1.+f) * out_data['v'][:-1, :]
+            ) * fact).flatten(order='F').tolist()
         if base['usrfields_2']['w_inc']:
             inobsfor['w_inc'] = 'not implemented yet'
         if base['usrfields_2']['t_inc']:
