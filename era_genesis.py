@@ -172,7 +172,7 @@ def calc_pt_in(t_in, levs_in):
 
     from genesis_globals import rcp
 
-    pt_in = np.empty((0, t_in.shape[0]))
+    pt_in = np.empty((0, t_in.shape[1]))
 
     for t in t_in:
         pt = t[:] * (1e5/levs_in[:])**rcp
