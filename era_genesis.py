@@ -324,15 +324,19 @@ def replace_namelist(template, out_data, base, args):
         if base['usrfields_2']['tau_rlx']:
             inobsfor['tau_rlx'] = args.intervall.seconds
         if base['usrfields_2']['u_inc']:
-            inobsfor['u_inc'] = 'not implemented yet'
+            inobsfor['u_inc'] = out_data['u'].flatten(order='F').tolist()
         if base['usrfields_2']['v_inc']:
-            inobsfor['v_inc'] = 'not implemented yet'
+            inobsfor['v_inc'] = out_data['v'].flatten(order='F').tolist()
         if base['usrfields_2']['w_inc']:
             inobsfor['w_inc'] = 'not implemented yet'
         if base['usrfields_2']['t_inc']:
-            inobsfor['t_inc'] = 'not implemented yet'
+            inobsfor['t_inc'] = (
+                (out_data['t'][1:, :] - out_data['t'][:-1, :]) * fact
+            ).flatten(order='F').tolist()
         if base['usrfields_2']['qstar']:
-            inobsfor['q_star'] = 'not implemented yet'
+            inobsfor['q_star'] = (
+                (out_data['qi'][1:, :] - out_data['qi'][:-1, :]) * fact
+            ).flatten(order='F').tolist()
     else:
         if base['usrfields_2']['u_inc']:
             inobsfor['u_inc'] = ((
