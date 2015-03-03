@@ -164,6 +164,22 @@ def clean_all_vars(args, all_vars, idxs, units):
     return all_vars, idxs, units
 
 
+
+def calc_pt_in(t_in, levs_in):
+    """Calculates the potential temperatures on the ERA_Interim levels
+
+    """
+
+    from genesis_globals import rcp
+
+    pt_in = np.empty((0, t_in.shape[0]))
+
+    for t in t_in:
+        pt = t[:] * (1e5/levs_in[:])**rcp
+        pt_in = np.concatenate((pt_in, pt[np.newaxis, :]), axis=0)
+    return pt_in
+
+
 def calc_p_in(z_in, msl_array, eta_rho, levs_in):
     """(array, array, array, array) -> array
 
@@ -525,7 +541,7 @@ def write_genesis(allvars, levs, file_name='genesis.csv'):
             'z' : 0.0,
             'levs' : allvars['P'][0, 0],
             't' : allvars['T'][0, 0],
-            'pt' : 0.0,
+            'pt' : allvars['pt'][0, 0],
             'q' : allvars['Q'][0, 0],
             'u' : allvars['U'][0, 0],
             'v' : allvars['V'][0, 0],
@@ -538,7 +554,7 @@ def write_genesis(allvars, levs, file_name='genesis.csv'):
                 'z' : allvars['Z'][0, i],
                 'levs' : levs[i],
                 't' : allvars['T'][0, i],
-                'pt' : 0.0,
+                'pt' : allvars['pt'][0, i],
                 'q' : allvars['Q'][0, i],
                 'u' : allvars['U'][0, i],
                 'v' : allvars['V'][0, i],
@@ -684,6 +700,8 @@ def main():
     allvars_si = spatially_interpolate(args, allvars, idxs)
 
     pressure_levs = idxs['ht']['vals']
+    allvars_si['pt'] = calc_pt_in(allvars_si['T'], pressure_levs)
+
     logger.write('era_pl: ' + str(pressure_levs))
     logger.write('z: ' +
                  str(allvars_si['Z'][0, :].flatten().tolist()))
