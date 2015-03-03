@@ -238,19 +238,37 @@ def calc_p_in(z_in, msl_array, eta_rho, levs_in):
     return p_in
 
 
-def calc_qi(q_in, theta_levs, levs_in):
+def calc_wind(wind_in, z_out, z_in):
+    """Calculates the wind
+
+    Input:
+        wind_in: u or v, depending on which you want, on ERA-Interim levels
+        z_out: eta_rho levels of the um
+        z_in: Z levels of the ERA-Interim
+
+    """
+
+    wind_out = np.empty((0, len(z_out)))
+
+    for w, z in zip(wind_in, z_in):
+        w_um = np.interp(z_out, z, w)
+        wind_out = np.concatenate((wind_out, w_um[np.newaxis, :]), axis=0)
+
+    return wind_out
+
+def calc_qi(q_in, theta_levs, z_in):
     """
     q_in: specific humidity read from the ERA-Interim files
     theta_levs: theta-levels [m]
-    levs_in: levels on ERA-Interim files [m]
+    z_in: levels on ERA-Interim files [m]
     """
 
     ntheta = len(theta_levs)
 
     qi = np.empty((0, ntheta))
 
-    for q in q_in:
-        q_um = np.interp(-theta_levs, -levs_in, q, right=q[0])
+    for q, z in zip(q_in, z_in):
+        q_um = np.interp(theta_levs, z, q, right=q[0])
         qi = np.concatenate((qi, q_um[np.newaxis, :]), axis=0)
 
     return qi
@@ -540,8 +558,8 @@ def write_charney(out_vars, levs, file_name='charney.csv'):
                 't_um': out_vars['T'][-1, i] if rho_lev else 0.0,
                 'pt_um': out_vars['theta'][-1, i],
                 'q_um': out_vars['qi'][-1, i],
-                'u_um': out_vars['U'][-1, i] if rho_lev else 0.0,
-                'v_um': out_vars['V'][-1, i] if rho_lev else 0.0
+                'u_um': out_vars['u'][-1, i] if rho_lev else 0.0,
+                'v_um': out_vars['v'][-1, i] if rho_lev else 0.0
             }
             charney.write(format_data.format(**w_dict))
     charney.close()
@@ -743,8 +761,10 @@ def main():
 
     out_data['p_in'] = calc_p_in(allvars_si['Z'], allvars_si['P'].flatten(),
                                  eta_rho, levs)
-    out_data['qi'] = calc_qi(allvars_si['Q'], eta_theta, levs)
+    out_data['qi'] = calc_qi(allvars_si['Q'], eta_theta, allvars_si['Z'])
     out_data['theta'] = calc_theta(allvars_si['pt'], allvars_si['Z'], eta_theta)
+    out_data['u'] = calc_wind(allvars_si['U'], eta_rho, allvars_si['Z'])
+    out_data['v'] = calc_wind(allvars_si['V'], eta_rho, allvars_si['Z'])
 
     write_genesis(allvars_si, levs)
     write_charney(out_data, levs)
