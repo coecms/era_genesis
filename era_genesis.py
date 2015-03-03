@@ -179,6 +179,30 @@ def calc_pt_in(t_in, levs_in):
     return pt_in
 
 
+def calc_geostrophic_winds(z_in, dx, lat):
+    """Calculates the geostrophic winds
+
+    Inputs:
+        z_in = np.ndarray((rec, height, lat/lon)), geopotential
+        dx = float, distance between grid in m
+        lat = float, latitude
+
+    Output:
+        g = np.ndarray((rec, height))
+    """
+
+    from genesis_globals import omg
+
+    f = 2 * omg * np.sin(lat * np.pi / 180.)
+
+    g = np.empty((0, z_in.shape[1]))
+    for z in z_in:
+        dphidx = (z[:, 1] - z[:, 0]) / dx if dx > 0. else np.zeros_like(z[:, 0])
+        g = np.concatenate((g, (-1/f)*dphidx[np.newaxis, :]), axis=0)
+
+    return g
+
+
 def calc_p_in(z_in, msl_array, eta_rho, levs_in):
     """(array, array, array, array) -> array
 
@@ -544,8 +568,8 @@ def write_genesis(allvars, levs, file_name='genesis.csv'):
             'q': allvars['Q'][0, 0],
             'u': allvars['U'][0, 0],
             'v': allvars['V'][0, 0],
-            'ug': 0.0,
-            'vg': 0.0
+            'ug': allvars['ug'][0, 0],
+            'vg': allvars['vg'][0, 0]
         }
         genesis.write(format_data.format(**w_dict))
         for i in range(allvars['U'].shape[1]):
@@ -557,8 +581,8 @@ def write_genesis(allvars, levs, file_name='genesis.csv'):
                 'q': allvars['Q'][0, i],
                 'u': allvars['U'][0, i],
                 'v': allvars['V'][0, i],
-                'ug': 0.0,
-                'vg': 0.0
+                'ug': allvars['ug'][0, i],
+                'vg': allvars['vg'][0, i]
             }
             genesis.write(format_data.format(**w_dict))
     genesis.close()
@@ -700,6 +724,12 @@ def main():
 
     pressure_levs = idxs['ht']['vals']
     allvars_si['pt'] = calc_pt_in(allvars_si['T'], pressure_levs)
+    allvars_si['ug'] = calc_geostrophic_winds(
+        allvars['Z'][:, :, :, 0], allvars_si['dy'], args.lon
+        )
+    allvars_si['vg'] = calc_geostrophic_winds(
+        allvars['Z'][:, :, 0, :], allvars_si['dx'], args.lat
+        )
 
     logger.write('era_pl: ' + str(pressure_levs))
     logger.write('z: ' +
