@@ -38,11 +38,11 @@ def next_month(month):
     return datetime.datetime(month.year, month.month+1, 1)
 
 
-def file_list(var, args):
+def file_list(var, conf):
     """(str, Namelist) -> list of str
 
     Returns a list of file names that need to be opened to gather variable var
-    for all dates between args.start_date and args.end_date
+    for all dates between conf.start_date and conf.end_date
 
     >>> a = dummyargs()
     >>> a.start_date = datetime.datetime(2011, 1, 1, 3, 0)
@@ -65,9 +65,9 @@ def file_list(var, args):
 
     """
     files = []
-    this_month = datetime.datetime(year=args.start_date.year,
-                                   month=args.start_date.month, day=1)
-    while this_month < args.end_date:
+    this_month = datetime.datetime(year=conf.start_date.year,
+                                   month=conf.start_date.month, day=1)
+    while this_month < conf.end_date:
         files.append(get_filename(var, this_month))
         this_month = next_month(this_month)
     return files
@@ -336,7 +336,7 @@ def read_array(file_handle, var_name, shape=None):
     return return_array
 
 
-def get_indices(args):
+def get_indices(conf):
     """ (Namelist, str) -> dict
 
     Returns a dictionary which describe the indices that need to be read.
@@ -357,7 +357,7 @@ def get_indices(args):
 
     # First, open the first file to get the best values for lat, lon, and time
     ncid, opened_here = genesis_open_netCDF(get_filename(dummy_var,
-                                                         args.start_date))
+                                                         conf.start_date))
 
     dim_lengths = get_dimension_lengths(ncid)
 
@@ -375,16 +375,16 @@ def get_indices(args):
 
     # Get the latitude indices
     lat_array = read_array(ncid, get_lat_name(dummy_var))
-    lat_idxs = h.find_nearest_indices(lat_array, args.lat)
-    if args.debug:
+    lat_idxs = h.find_nearest_indices(lat_array, conf.lat)
+    if conf.debug:
         print("Lat array grid points: {},  indices: {}".format(
             lat_array[lat_idxs], lat_idxs))
     lat_vals = lat_array[lat_idxs]
 
     # Get the longitude indices
     long_array = read_array(ncid, get_lon_name(dummy_var))
-    long_idxs = h.find_nearest_indices(long_array, args.lon)
-    if args.debug:
+    long_idxs = h.find_nearest_indices(long_array, conf.lon)
+    if conf.debug:
         print("Long array grid points: {},  indices: {}".format(
             long_array[long_idxs], long_idxs))
     long_vals = long_array[long_idxs]
@@ -394,7 +394,7 @@ def get_indices(args):
     # The time indices is getting harder, because they change from file to file.
     # Get a list of files that encompass all the times:
 
-    files = file_list(dummy_var, args)
+    files = file_list(dummy_var, conf)
     times_idxs = []
     times_vals = []
     for f in files:
@@ -407,8 +407,8 @@ def get_indices(args):
         times = time_var[:]
 
         # Covert start and end date into the same format as times
-        s_date = cdf.date2num(args.start_date, units=time_var.units)
-        e_date = cdf.date2num(args.end_date, units=time_var.units)
+        s_date = cdf.date2num(conf.start_date, units=time_var.units)
+        e_date = cdf.date2num(conf.end_date, units=time_var.units)
 
         # Find the closest location to both start and end date
         start_idx = np.abs(times - s_date).argmin()
@@ -445,7 +445,7 @@ def get_indices(args):
     return return_dict
 
 
-def get_all_units(args):
+def get_all_units(conf):
     """ (Namelist) -> dict
 
     Returns a dictionary that gives the units for the various variables and
@@ -456,7 +456,7 @@ def get_all_units(args):
     return_dict = {}
 
     for var in all_vars:
-        file_name = get_filename(var, args.start_date)
+        file_name = get_filename(var, conf.start_date)
         ncid, opened_here = genesis_open_netCDF(file_name)
 
         if var == all_vars[0]:

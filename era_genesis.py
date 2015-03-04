@@ -4,7 +4,6 @@
 import argparse
 import os
 import numpy as np
-import datetime
 import genesis_netcdf_helpers as nch
 import genesis_helpers as h
 
@@ -55,7 +54,7 @@ class genesis_logger(object):
                     print(' '*indent + '{}'.format(val))
 
 
-def read_netcdf_data(var, idxs, args):
+def read_netcdf_data(var, idxs, conf):
     """(str, dict, Namelist) -> np.ndarray
 
     Returns all data from the ERA-Interim with variable named var in
@@ -65,9 +64,9 @@ def read_netcdf_data(var, idxs, args):
 
     assert(var in ['U', 'V', 'T', 'Z', 'Q', 'P'])
 
-    logger = genesis_logger(args.debug)
+    logger = genesis_logger(conf.debug)
 
-    files = nch.file_list(var, args)
+    files = nch.file_list(var, conf)
 
     logger.write('files to open for variable {}'.format(var))
     for f in files:
@@ -117,15 +116,15 @@ def read_netcdf_data(var, idxs, args):
     return data_array
 
 
-def read_all_data(args, idxs):
+def read_all_data(conf, idxs):
 
     variables = {}
     for var in ['U', 'V', 'T', 'Z', 'Q', 'P']:
-        variables[var] = read_netcdf_data(var, idxs, args)
+        variables[var] = read_netcdf_data(var, idxs, conf)
     return variables
 
 
-def clean_all_vars(args, all_vars, idxs, units):
+def clean_all_vars(conf, all_vars, idxs, units):
     """(Namelist, dict of arrays, dict, dict) -> dict of arrays
 
     Performs several transformations on the datasets:
@@ -257,10 +256,10 @@ def vert_interp(var_in, z_in, z_out):
     return var_out
 
 
-def spatially_interpolate(args, read_vars, idxs):
+def spatially_interpolate(conf, read_vars, idxs):
     """( Namelist, dict, dict ) -> dict
 
-    Creates a new namelist with spacially interpolated data of args.
+    Creates a new namelist with spacially interpolated data of conf.
     Adds new fields for temperature and humidity gradients.
     """
 
@@ -268,9 +267,9 @@ def spatially_interpolate(args, read_vars, idxs):
 
     return_dict = {}
 
-    lon_frac = np.array(h.find_fractions(args.lon, idxs['lon']['vals'][0],
+    lon_frac = np.array(h.find_fractions(conf.lon, idxs['lon']['vals'][0],
                                          idxs['lon']['vals'][1]))
-    lat_frac = np.array(h.find_fractions(args.lat, idxs['lat']['vals'][0],
+    lat_frac = np.array(h.find_fractions(conf.lat, idxs['lat']['vals'][0],
                                          idxs['lat']['vals'][1]))
 
     fracts = lon_frac[np.newaxis, :] * lat_frac[:, np.newaxis]
@@ -284,7 +283,7 @@ def spatially_interpolate(args, read_vars, idxs):
 
     dy = h.surface_distance_y(*idxs['lat']['vals'])
     dx = h.surface_distance_x(*idxs['lon']['vals'],
-                              lat=args.lat)
+                              lat=conf.lat)
 
     return_dict['dx'] = dx
     return_dict['dy'] = dy
@@ -292,7 +291,7 @@ def spatially_interpolate(args, read_vars, idxs):
     return return_dict
 
 
-def replace_namelist(template, out_data, base, args):
+def replace_namelist(template, out_data, conf):
     """(namelist, dict, namelist, Namespace) -> namelist
 
     Replaces all relevant data in template, then returns this new
@@ -302,8 +301,8 @@ def replace_namelist(template, out_data, base, args):
     from copy import deepcopy
     from genesis_globals import omg
 
-    f = 2 * omg * np.sin(args.lat * np.pi / 180.)
-    fact = 24 / (args.intervall.total_seconds() / 3600.0)
+    f = 2 * omg * np.sin(conf.lat * np.pi / 180.)
+    fact = 24 / (conf.intervall.total_seconds() / 3600.0)
 
     return_namelist = deepcopy(template)
 
@@ -315,175 +314,68 @@ def replace_namelist(template, out_data, base, args):
     inprof = return_namelist['inprof']
     indata = return_namelist['indata']
 
-    l_windrlx = base['usrfields_2']['l_windrlx']
+    inobsfor['l_windrlx'] = conf.l_windrlx
+    return_namelist['cntlscm']['nfor'] = conf.num
 
-    inobsfor['l_windrlx'] = l_windrlx
-    return_namelist['cntlscm']['nfor'] = args.num
-
-    if l_windrlx:
-        if base['usrfields_2']['tau_rlx']:
-            inobsfor['tau_rlx'] = args.intervall.seconds
-        if base['usrfields_2']['u_inc']:
+    if conf.l_windrlx:
+        if conf.tau_rlx:
+            inobsfor['tau_rlx'] = conf.intervall.seconds
+        if conf.u_inc:
             inobsfor['u_inc'] = out_data['u'].flatten(order='F').tolist()
-        if base['usrfields_2']['v_inc']:
+        if conf.v_inc:
             inobsfor['v_inc'] = out_data['v'].flatten(order='F').tolist()
-        if base['usrfields_2']['w_inc']:
+        if conf.w_inc:
             inobsfor['w_inc'] = 'not implemented yet'
-        if base['usrfields_2']['t_inc']:
+        if conf.t_inc:
             inobsfor['t_inc'] = (
                 (out_data['t'][1:, :] - out_data['t'][:-1, :]) * fact
             ).flatten(order='F').tolist()
-        if base['usrfields_2']['qstar']:
+        if conf.q_star:
             inobsfor['q_star'] = (
                 (out_data['qi'][1:, :] - out_data['qi'][:-1, :]) * fact
             ).flatten(order='F').tolist()
     else:
-        if base['usrfields_2']['u_inc']:
+        if conf.u_inc:
             inobsfor['u_inc'] = ((
                 out_data['u'][1:, :] - (1.-f) * out_data['u'][:-1, :]
             ) * fact).flatten(order='F').tolist()
-        if base['usrfields_2']['v_inc']:
+        if conf.v_inc:
             inobsfor['v_inc'] = ((
                 out_data['v'][1:, :] - (1.+f) * out_data['v'][:-1, :]
             ) * fact).flatten(order='F').tolist()
-        if base['usrfields_2']['w_inc']:
+        if conf.w_inc:
             inobsfor['w_inc'] = 'not implemented yet'
-        if base['usrfields_2']['t_inc']:
+        if conf.t_inc:
             inobsfor['t_inc'] = 'not implemented yet'
-        if base['usrfields_2']['q_star']:
+        if conf.q_star:
             inobsfor['q_star'] = 'not implemented yet'
 
-    if base['usrfields_1']['ui']:
+    if conf.ui:
         inprof['ui'] = out_data['u'][0, :].flatten(order='F').tolist()
-    if base['usrfields_1']['vi']:
+    if conf.vi:
         inprof['vi'] = out_data['v'][0, :].flatten(order='F').tolist()
-    if base['usrfields_1']['wi']:
+    if conf.wi:
         inprof['wi'] = 'not implemented yet'
-    if base['usrfields_1']['theta']:
+    if conf.theta:
         inprof['theta'] = out_data['theta'][0, :].flatten(order='F').tolist()
-    if base['usrfields_1']['qi']:
+    if conf.qi:
         inprof['qi'] = out_data['qi'][0, :].flatten(order='F').tolist()
-    if base['usrfields_1']['p_in']:
+    if conf.p_in:
         inprof['p_in'] = out_data['p_in'][0, :].flatten(order='F').tolist()
 
-    indata['lat'] = args.lat
-    indata['long'] = args.lon
-    indata['year_init'] = args.start_date.year
-    indata['month_init'] = args.start_date.month
-    indata['day_init'] = args.start_date.day
-    indata['hour_init'] = args.start_date.hour
+    indata['lat'] = conf.lat
+    indata['long'] = conf.lon
+    indata['year_init'] = conf.start_date.year
+    indata['month_init'] = conf.start_date.month
+    indata['day_init'] = conf.start_date.day
+    indata['hour_init'] = conf.start_date.hour
 
-    delta = args.end_date - args.start_date
+    delta = conf.end_date - conf.start_date
     return_namelist['rundata']['nminin'] = int((delta.total_seconds()+1) / 60)
 
-    inobsfor['tstar_forcing'] = [288.0] * args.num
+    inobsfor['tstar_forcing'] = [288.0] * conf.num
 
     return return_namelist
-
-
-def convert_base_time_to_args_time(base, datename, hourname):
-    """(namelist, str, str) -> str
-
-    Converts the data from the base namelist in time->datename and
-    time->hourname into an 12 character time representation according
-    to the arguments:
-
-    >>> base={'time':{'sdate':20100101, 'shour':0, 'edate':20103101, \
-                      'ehour':18}}
-    >>> convert_base_time_to_args_time(base, 'sdate', 'shour')
-    '2010010100'
-    >>> convert_base_time_to_args_time(base, 'edate', 'ehour')
-    '2010310118'
-    """
-
-    return '{:08}{:02}'.format(base['time'][datename],
-                               base['time'][hourname])
-
-
-def read_date_from_args(s):
-    """(str) -> datetime
-
-    reads the string s and tries to interpret it as datetime.
-
-    >>> read_date_from_args('20150101')
-    datetime.datetime(2015, 1, 1, 0, 0)
-    >>> read_date_from_args('2015013104')
-    datetime.datetime(2015, 1, 31, 4, 0)
-    >>> read_date_from_args('201512011231')
-    datetime.datetime(2015, 12, 1, 12, 31)
-    """
-
-    if len(s) == 8:
-        return_date = datetime.datetime.strptime(s, '%Y%m%d')
-    elif len(s) == 10:
-        return_date = datetime.datetime.strptime(s, '%Y%m%d%H')
-    elif len(s) == 12:
-        return_date = datetime.datetime.strptime(s, '%Y%m%d%H%M')
-    else:
-        raise ValueError("Can't read datetime: {}".format(s))
-
-    return return_date
-
-
-def get_start_date(args, base):
-    """(Namespace, namelist) -> datetime
-
-    Returns the start time. If args.start_date is set, then it does nothing.
-    Otherwise, it reads the start_date from the base namelist.
-
-    >>> base={'time':{'sdate':20100101, 'shour':0, 'edate':20100131, \
-                      'ehour':18}}
-    >>> args=argparse.Namespace()
-    >>> args.start_date = None
-    >>> get_start_date(args, base) # args not set
-    datetime.datetime(2010, 1, 1, 0, 0)
-    >>> args.start_date = '20000323' ; get_start_date(args, base)
-    datetime.datetime(2000, 3, 23, 0, 0)
-    >>> args.start_date = '2001012112' ; get_start_date(args, base)
-    datetime.datetime(2001, 1, 21, 12, 0)
-    >>> args.start_date = '196711290630' ; get_start_date(args, base)
-    datetime.datetime(1967, 11, 29, 6, 30)
-    """
-
-    if args.start_date:
-        date_string = args.start_date
-    else:
-        date_string = convert_base_time_to_args_time(base, 'sdate', 'shour')
-
-    return read_date_from_args(date_string)
-
-
-def get_end_date(args, base):
-    """(Namespace, namelist) -> datetime
-
-    Returns the start time. If args.start_date is set, then it does nothing.
-    Otherwise, it reads the start_date from the base namelist.
-
-    >>> base={'time':{'sdate':20000101, 'shour':0, 'edate':20000131, \
-                      'ehour':18}}
-    >>> args=argparse.Namespace()
-    >>> args.start_date = datetime.datetime(2000, 1, 1, 0, 0)
-    >>> args.intervall = datetime.timedelta(hours=6)
-    >>> args.end_date = None ; args.num = None ; get_end_date(args, base)
-    datetime.datetime(2000, 1, 31, 18, 0)
-    >>> args.num=24 ; get_end_date(args, base)
-    datetime.datetime(2000, 1, 6, 18, 0)
-    >>> args.end_date = '20000323' ; get_end_date(args, base)
-    datetime.datetime(2000, 3, 23, 0, 0)
-    >>> args.end_date = '2001012112' ; get_end_date(args, base)
-    datetime.datetime(2001, 1, 21, 12, 0)
-    >>> args.end_date = '196711290630' ; get_end_date(args, base)
-    datetime.datetime(1967, 11, 29, 6, 30)
-    """
-
-    if args.end_date:
-        date_string = args.end_date
-    elif args.start_date and args.num:
-        return args.start_date + (args.num-1) * args.intervall
-    else:
-        date_string = convert_base_time_to_args_time(base, 'edate', 'ehour')
-
-    return read_date_from_args(date_string)
 
 
 def write_charney(out_vars, levs, file_name='charney.csv'):
@@ -558,60 +450,6 @@ def write_genesis(allvars, levs, file_name='genesis.csv'):
     genesis.close()
 
 
-def cleanup_args(args, base):
-    """(Namelist, dict of dict) -> Namelist
-
-    Converts start- and end time to datetime.datetime, calculates endtime if
-    num is given, and end_time, if num is given. Can read start and end time
-    from base config file, but options in args are gived priority.
-    """
-
-    stop = False
-    logger = genesis_logger(args.debug)
-    # See whether there are any parameters in the base configuration file
-    # that we might use.
-    base_knows_sdate = 'time' in base.keys() and 'sdate' in base['time'].keys()
-    base_knows_edate = 'time' in base.keys() and 'edate' in base['time'].keys()
-    if not args.lon:
-        print("Need longitude")
-        stop = True
-    if not args.lat:
-        print("Need latitude")
-        stop = True
-    if not (args.start_date or base_knows_sdate):
-        logger.write(" No Start Date given")
-        stop = True
-    if not (args.end_date or args.num or base_knows_edate):
-        print ("Need end date or number")
-        stop = True
-
-    if stop:
-        print(" Please see help file for details (-h)")
-        exit()
-
-    if ':' in args.intervall:
-        intervall_hours, intervall_minutes = args.intervall.split(':')
-    else:
-        intervall_hours = int(args.intervall)
-        intervall_minutes = '00'
-    args.intervall = datetime.timedelta(hours=int(intervall_hours),
-                                        minutes=int(intervall_minutes))
-
-    args.start_date = get_start_date(args, base)
-    args.end_date = get_end_date(args, base)
-
-    args.num = 1
-    while args.start_date + args.num*args.intervall <= args.end_date:
-        args.num += 1
-
-    if args.lat < -90. or args.lat > 90.:
-        raise ValueError("Latitude out of bounds: {}".format(args.lat))
-    if args.lon < 0. or args.lon > 360.:
-        raise ValueError("Longitude out of bounds: {}".format(args.lon))
-
-    return args
-
-
 def parse_arguments():
     """(None) -> args
 
@@ -624,12 +462,6 @@ def parse_arguments():
     parser.add_argument('-S', '--start-date', help='start date: YYYYMMDD[HHMM]')
     parser.add_argument('-E', '--end-date', help='end date: YYYYMMDD[HHMM]')
     parser.add_argument('-N', '--num', help='number of times', type=int)
-    parser.add_argument('--lon-range',
-                        help='longitude range -- not implemented', type=float,
-                        default=3.0)
-    parser.add_argument('--lat-range',
-                        help='latitude range -- not implemented', type=float,
-                        default=3.0)
     parser.add_argument('-b', '--base', metavar='FILE', default='base.inp',
                         help='Namelist Template')
     parser.add_argument('-t', '--template', metavar='FILE',
@@ -638,18 +470,12 @@ def parse_arguments():
                         help='Output Namelist')
     parser.add_argument('-r', '--relhum', default=False, action='store_true',
                         help='Convert Relative to Specific Humidity')
-    parser.add_argument('-M', '--hPa', default=False, action='store_true',
-                        help='Convert surface pressure from hPa to Pa')
-    parser.add_argument('-O', '--offset', metavar='FILE',
-                        help='User Offset File')
     parser.add_argument('-d', '--debug', default=False, action='store_true',
                         help='Debug')
     parser.add_argument('-T', '--test', help='run doctest on this module',
                         default=False, action='store_true')
 
     args = parser.parse_args()
-
-    setattr(args, 'intervall', '06:00')
 
     return args
 
@@ -672,37 +498,37 @@ def main():
 
     # Convert the start_date and end_date to datetime format, plus read them in
     # in case there isn't anything given.
-    args = cleanup_args(args, base)
+    conf = h.Genesis_Config(args, base)
 
-    logger = genesis_logger(args.debug)
+    logger = genesis_logger(conf.debug)
 
-    logger.write_by_item(args, indent=2, header='command-line parameters:')
+    logger.write_by_item(conf, indent=2, header='command-line parameters:')
     logger.write(" Read from base configuration file.")
     for k in base.keys():
         logger.write_by_item(base[k], key_length=12, indent=4, header=k)
 
-    idxs = nch.get_indices(args)
+    idxs = nch.get_indices(conf)
     logger.write_by_item(idxs, indent=2, key_length=12, header='indices:')
 
-    units = nch.get_all_units(args)
+    units = nch.get_all_units(conf)
     logger.write_by_item(units, indent=2, key_length=12, header='units:')
 
-    allvars = read_all_data(args, idxs)
-    allvars, idxs, units = clean_all_vars(args, allvars, idxs, units)
+    allvars = read_all_data(conf, idxs)
+    allvars, idxs, units = clean_all_vars(conf, allvars, idxs, units)
 
-    allvars_si = spatially_interpolate(args, allvars, idxs)
+    allvars_si = spatially_interpolate(conf, allvars, idxs)
 
     pressure_levs = idxs['ht']['vals']
     allvars_si['pt'] = calc_pt_in(allvars_si['T'], pressure_levs)
     allvars_si['ug'] = -calc_geostrophic_winds(
-        allvars['Z'][:, :, :, 1], allvars_si['dy'], args.lon
+        allvars['Z'][:, :, :, 1], allvars_si['dy'], conf.lon
         )
     allvars_si['vg'] = calc_geostrophic_winds(
-        allvars['Z'][:, :, 0, :], allvars_si['dx'], args.lat
+        allvars['Z'][:, :, 0, :], allvars_si['dx'], conf.lat
         )
 
-    eta_theta = h.get_eta_theta(base)
-    eta_rho = h.get_eta_rho(base)
+    eta_theta = h.get_eta_theta(conf)
+    eta_rho = h.get_eta_rho(conf)
     z_in = allvars_si['Z']
     logger.write('era_pl: ' + str(pressure_levs))
     logger.write('eta_theta: ' + str(eta_theta))
@@ -725,11 +551,11 @@ def main():
     write_genesis(allvars_si, levs)
     write_charney(out_data, levs)
 
-    template = f90nml.read(args.template)
+    template = f90nml.read(conf.template)
 
-    out_namelist = replace_namelist(template, out_data, base, args)
+    out_namelist = replace_namelist(template, out_data, conf)
 
-    out_namelist.write(args.output, force=True)
+    out_namelist.write(conf.output, force=True)
 
 
 if __name__ == '__main__':
