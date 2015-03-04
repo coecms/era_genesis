@@ -399,11 +399,11 @@ class era_dataset(object):
                                    ).format(self.nlon, len(lon_array)))
         self.lon_array = lon_array
 
-    def __read_dim_array(self, dim_name):
+    def __read_dim_array(self, dim_name, date=None):
         """Reads the whole dimension array
         """
 
-        ncid = nc.Dataset(self.get_file_name(), 'r')
+        ncid = nc.Dataset(self.get_file_name(date=date), 'r')
         return_array = ncid.variables[dim_name][:]
         ncid.close()
 
@@ -439,12 +439,12 @@ class era_dataset(object):
         )
         self.lon_idxs = list(range(len(self.lon_array)))
 
-    def read_time_array(self):
+    def read_time_array(self, date=None):
         """Reads the heigtime array into this object
         """
 
         self.set_time_array(
-            self.__read_dim_array(self.__get_time_name())
+            self.__read_dim_array(self.__get_time_name(), date=date)
         )
         self.time_idxs = list(range(len(self.time_array)))
 
@@ -474,11 +474,74 @@ class era_dataset(object):
         self.lon_array = self.lon_array[self.lon_idxs]
         self.nlon = 2
 
+    def select_time_array(self, start, end):
+        """
+        Creates a list of files, and a list of lists of corresponding
+        indices and values.
+        """
+
+        def next_month(date):
+            if date.month == 12:
+                return datetime.datetime(date.year+1, 1, 1)
+            else:
+                return datetime.datetime(date.year, date.month+1, 1)
+
+        start_date = self.__convert_date(start)
+        end_date = self.__convert_date(end)
+        files = []
+        times_idxs = []
+        times_vals = []
+
+        date = start_date
+        while (date <= end_date):
+            file_name = self.get_file_name(date=date)
+            files.append(file_name)
+            ncid = nc.Dataset(file_name, 'r')
+            time_var = ncid.variables[self.__get_time_name()]
+
+            # Convert the time data into a numpy array.
+            times = time_var[:]
+
+            # Covert start and end date into the same format as times
+            s_date = nc.date2num(start_date, units=time_var.units)
+            e_date = nc.date2num(end_date, units=time_var.units)
+
+            # Find the closest location to both start and end date
+            start_idx = np.abs(times - s_date).argmin()
+            end_idx = np.abs(times - e_date).argmin()
+
+            # Calculate the indices and values for this file
+            t_idxs = list(range(start_idx, end_idx+1))
+            t_vals = times[t_idxs]
+
+            # Append both the indices and values to the total list.
+            times_idxs.append(t_idxs)
+            times_vals += t_vals
+
+        self.filename_list = files
+        self.time_idxs = times_idxs
+        self.time_array = np.array(times_vals)
+
     def read_data(self):
         """Reads the data from the ERA NetCDF files"""
 
-        if not self.initialised:
+        if len(self.filename_list) == 0 or \
+                not self.lat_array or not self.lon_array or \
+                not self.ht_array:
             raise EraException('dataset not initialised.')
+
+        data_array = np.empty((0, self.nht, self.nlat, self.nlon))
+        varname = self.__get_var_name()
+        for f, t in zip(self.filename_list, self.time_idxs):
+            ncid = nc.Dataset(f, 'r')
+            if self.var == 'P':
+                data = ncid.variables[varname][t, self.lat_idxs, self.lon_idxs]
+                data.shape = (data.shape[0], 1, data.shape[1], data.shape[2])
+            else:
+                data = ncid.variables[varname][t, self.ht_idxs, self.lat_idxs,
+                                               self.lon_idxs]
+            data_array = np.concatenate((data_array, data), axis=0)
+        self.data = data_array
 
 
 if __name__ == '__main__':
@@ -492,5 +555,7 @@ if __name__ == '__main__':
     u.read_lon_array()
     u.select_lons_near(147.2)
 
-    u.read_time_array(start='2000-01-01', end='2000-29-02 18', intervall=6)
+    u.select_time_array(start='2000-01-31 12', end='2000-02-01 06')
     u.read_data()
+
+    print(u.data[:, 0, 0, 0])
