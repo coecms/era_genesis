@@ -512,11 +512,13 @@ class era_dataset(object):
 
             # Calculate the indices and values for this file
             t_idxs = list(range(start_idx, end_idx+1))
-            t_vals = times[t_idxs]
+            t_vals = times[t_idxs].tolist()
 
             # Append both the indices and values to the total list.
             times_idxs.append(t_idxs)
             times_vals += t_vals
+
+            date = next_month(date)
 
         self.filename_list = files
         self.time_idxs = times_idxs
@@ -524,11 +526,6 @@ class era_dataset(object):
 
     def read_data(self):
         """Reads the data from the ERA NetCDF files"""
-
-        if len(self.filename_list) == 0 or \
-                not self.lat_array or not self.lon_array or \
-                not self.ht_array:
-            raise EraException('dataset not initialised.')
 
         data_array = np.empty((0, self.nht, self.nlat, self.nlon))
         varname = self.__get_var_name()
@@ -558,4 +555,4 @@ if __name__ == '__main__':
     u.select_time_array(start='2000-01-31 12', end='2000-02-01 06')
     u.read_data()
 
-    print(u.data[:, 0, 0, 0])
+    print(u.data[:, 0, :, 0])

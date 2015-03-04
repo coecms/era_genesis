@@ -502,7 +502,7 @@ def main():
 
     logger = genesis_logger(conf.debug)
 
-    logger.write_by_item(conf, indent=2, header='command-line parameters:')
+    logger.write_by_item(args, indent=2, header='command-line parameters:')
     logger.write(" Read from base configuration file.")
     for k in base.keys():
         logger.write_by_item(base[k], key_length=12, indent=4, header=k)
