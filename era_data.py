@@ -349,7 +349,7 @@ class era_dataset(object):
             raise EraDimException(("Time dimension length wrong: " +
                                    "ntime = {}, len(time_array = {}"
                                    ).format(self.ntime, len(time_array)))
-        self.time_data = time_array
+        self.time_array = time_array
 
     def set_ht_array(self, ht_array):
         """(np.array) -> None
@@ -365,7 +365,7 @@ class era_dataset(object):
             raise EraDimException(("Height dimension length wrong: " +
                                    "nht = {}, len(ht_array = {}"
                                    ).format(self.nht, len(ht_array)))
-        self.ht_data = ht_array
+        self.ht_array = ht_array
 
     def set_lat_array(self, lat_array):
         """(np.array) -> None
@@ -397,7 +397,7 @@ class era_dataset(object):
             raise EraDimException(("Lon dimension length wrong: " +
                                    "nlon = {}, len(lon_array = {}"
                                    ).format(self.nlon, len(lon_array)))
-        self.lon_data = lon_array
+        self.lon_array = lon_array
 
     def __read_dim_array(self, dim_name):
         """Reads the whole dimension array
@@ -482,10 +482,6 @@ class era_dataset(object):
 
 
 if __name__ == '__main__':
-#    import doctest
-#    doctest.testmod(
-#        extraglobs={'ed': era_dataset('U')}
-#    )
 
     u = era_dataset('U')
     u.read_ht_array()
@@ -496,5 +492,5 @@ if __name__ == '__main__':
     u.read_lon_array()
     u.select_lons_near(147.2)
 
-#    u.read_time_array(start='2000-01-01', end='2000-29-02 18', intervall=6)
-#    u.read_data()
+    u.read_time_array(start='2000-01-01', end='2000-29-02 18', intervall=6)
+    u.read_data()
