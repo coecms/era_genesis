@@ -14,7 +14,7 @@ class Genesis_Config(object):
 
     intervall = datetime.timedelta(hours=6)
 
-    def __read_date_from_args(s):
+    def __read_date_from_args(self, s):
         """(str) -> datetime
 
         reads the string s and tries to interpret it as datetime.
@@ -38,7 +38,7 @@ class Genesis_Config(object):
 
         return return_date
 
-    def __read_date_from_base(date, hour):
+    def __read_date_from_base(self, date, hour):
         """(int, int) -> datetime
 
         Inputs:
