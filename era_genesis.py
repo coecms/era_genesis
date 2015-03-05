@@ -4,7 +4,7 @@
 import argparse
 import os
 import numpy as np
-import genesis_netcdf_helpers as nch
+from era_data import era_dataset
 import genesis_helpers as h
 
 try:
@@ -26,156 +26,14 @@ except:
 #    """ )
 
 
-class genesis_logger(object):
-    active = False
-
-    def __init__(self, active):
-        self.active = active
-
-    def write(self, obj):
-        if self.active:
-            print(obj)
-
-    def write_by_item(self, obj, indent=0, key_length=12, header=None):
-        if self.active:
-            if header:
-                print(header)
-            if type(obj) == dict:
-                for key, val in obj.iteritems():
-                    ki = '{:'+str(key_length)+'}'
-                    print((' '*indent + ki + ': {}').format(key, val))
-            elif type(obj) == argparse.Namespace:
-                for key in obj.__dict__:
-                    val = getattr(obj, key)
-                    ki = '{:'+str(key_length)+'}'
-                    print((' '*indent + ki + ': {}').format(key, val))
-            else:
-                for val in obj:
-                    print(' '*indent + '{}'.format(val))
-
-
-def read_netcdf_data(var, idxs, conf):
-    """(str, dict, Namelist) -> np.ndarray
-
-    Returns all data from the ERA-Interim with variable named var in
-    ['U', 'V', 'T', 'Z', 'Q', 'P'] for all the relevant dates.
-
-    """
-
-    assert(var in ['U', 'V', 'T', 'Z', 'Q', 'P'])
-
-    logger = genesis_logger(conf.debug)
-
-    files = nch.file_list(var, conf)
-
-    logger.write('files to open for variable {}'.format(var))
-    for f in files:
-        logger.write(f)
-
-    first_file = True
-
-    idxs_to_read = [1, 1, 1] if var == 'P' else [1, 1, 1, 1]
-
-    for f, time_idxs in zip(files, idxs['time']['idxs_list']):
-        ncid, opened_here = nch.genesis_open_netCDF(f)
-        shape, dims = nch.get_shape(ncid, var)
-        if first_file:
-            first_dims = dims
-            lat_axis = dims.index(nch.get_lat_name(var))
-            lon_axis = dims.index(nch.get_lon_name(var))
-            time_axis = dims.index(nch.get_time_name(var))
-            if not var == 'P':
-                ht_axis = dims.index(nch.get_ht_name(var))
-        else:
-            if not dims == first_dims:
-                raise IndexError("NetCDF files are not consistent")
-
-        idxs_to_read[lat_axis] = idxs['lat']['idxs']
-        idxs_to_read[lon_axis] = idxs['lon']['idxs']
-        idxs_to_read[time_axis] = time_idxs
-        if not var == 'P':
-            idxs_to_read[ht_axis] = list(range(shape[ht_axis]))
-
-        try:
-            this_data = nch.read_array(ncid, nch.get_varname(var), idxs_to_read)
-        except Exception as e:
-            print(idxs_to_read)
-            raise e
-        if first_file:
-            data_array = this_data
-        else:
-            data_array = np.concatenate((data_array, this_data), axis=time_axis)
-        nch.genesis_close_netCDF(ncid, opened_here)
-        first_file = False
-    if var == 'P':
-        p_shape = list(data_array.shape)
-        p_shape.insert(idxs['dims'].index('ht'), 1)
-        data_array = data_array.reshape(p_shape)
-    logger.write('shape of read data for variable {}: {}'.format(
-                 var, data_array.shape))
-    return data_array
-
-
-def read_all_data(conf, idxs):
-
-    variables = {}
-    for var in ['U', 'V', 'T', 'Z', 'Q', 'P']:
-        variables[var] = read_netcdf_data(var, idxs, conf)
-    return variables
-
-
-def clean_all_vars(conf, all_vars, idxs, units):
-    """(Namelist, dict of arrays, dict, dict) -> dict of arrays
-
-    Performs several transformations on the datasets:
-
-        1) ensures that the height dimension is in Pascals
-        2) ensures that the surface pressure is in Pascals
-        3) ensures that the height dimension is ascending
-        4) ensures that the z-variable is in m
-
-    """
-
-    from genesis_globals import grav
-
-    if units['P'] == 'hPa':
-        all_vars['P'] = 100.0 * all_vars['P']
-        units['P'] = 'Pa'
-
-    if units['ht'] == 'hPa':
-        idxs['ht']['vals'] = 100.0 * idxs['ht']['vals']
-        units['ht'] = 'Pa'
-
-    # Pressure values, so higher value is lower level.
-    if idxs['ht']['vals'][0] < idxs['ht']['vals'][-1]:
-        if idxs['dims'][1] != 'ht':
-            raise IndexError("At the moment, only know how to invert the" +
-                             "second axis, but that isn't height")
-        idxs['ht']['vals'][:] = idxs['ht']['vals'][::-1]
-        idxs['ht']['idxs'][:] = idxs['ht']['idxs'][::-1]
-        for var in ['U', 'V', 'T', 'Z', 'Q']:
-            all_vars[var][:, :, :, :] = all_vars[var][:, ::-1, :, :]
-
-    if units['Z'] != 'm':
-        all_vars['Z'] = all_vars['Z'] / grav
-        units['Z'] = 'm'
-
-    return all_vars, idxs, units
-
-
-def calc_pt_in(t_in, levs_in):
-    """Calculates the potential temperatures on the ERA_Interim levels
-
-    """
-
+def calc_pt(t_si, ht):
     from genesis_globals import rcp
 
-    pt_in = np.empty((0, t_in.shape[1]))
-
-    for t in t_in:
-        pt = t[:] * (1e5/levs_in[:])**rcp
-        pt_in = np.concatenate((pt_in, pt[np.newaxis, :]), axis=0)
-    return pt_in
+    pt_si = np.empty(0, t_si.shape[1])
+    for t in t_si:
+        pt = t[:] * (1e5/ht[:])**rcp
+        pt_si = np.concatenate((pt_si, pt[np.newaxis, :]))
+    return pt_si
 
 
 def calc_geostrophic_winds(z_in, dx, lat):
@@ -202,93 +60,77 @@ def calc_geostrophic_winds(z_in, dx, lat):
     return g
 
 
-def calc_p_in(z_in, msl_array, eta_rho, levs_in):
-    """(array, array, array, array) -> array
-
-    z_in: Z in the input files, but in m, shape (nrecs, nlvls_in)
-    msl_array: What's read as P in the input files, shape (nrecs)
-    eta_rho: From base.inp, eta_rho * z_top_of_model + z_terrain_asl
-    levs_in: height values from netCDF files, shape (nlvls_in)
-
-    Calculates pressure profile
+def calc_p_um(ht, z_si, z_rho, msl):
+    """
+        / MSL - rho*grav*z_rho                      for z_rho < z_si[0]
+p_um = {  interp_ht(HT, z_si, z_rho                 for z[0] <= z_rho <= z[-1]
+        \ HT[-1] * (maxz - z_rho)/(maxz - z[-1])    for z[-1] < z_rho
     """
 
-    from genesis_globals import grav, rho, maxz
+    from genesis_globals import rho, grav, maxz
 
-    zzr = np.concatenate((eta_rho, np.array([maxz])))
-    p_in = np.zeros((0, len(zzr)))
+    def interp(x, xp, fp):
+        if xp[0] > xp[-1]:
+            return np.interp(x, xp[::-1], fp[::-1])
+        else:
+            return np.interp(x, xp, fp)
 
-    for z, msl in zip(z_in, msl_array):
+    p_um = np.empty((z_si.shape[0], len(z_rho)))
 
-        p_line = np.zeros((1, len(zzr)))
+    for rec in range(z_si.shape[0]):
+        for i in range(len(z_rho)):
+            if (z_rho[i] < z_si[rec, 0]):
+                p_um[rec, i] = msl[rec] - rho*grav*z_rho[i]
+            elif (z_rho[i] > z_si[rec, -1]):
+                p_um[rec, i] = ht[-1] * (maxz - z_rho[i])/(maxz - z_si[rec, -1])
+            else:
+                p_um[rec, i] = interp(z_rho[i], z_si[rec, :], ht[:])
 
-        xp = np.concatenate(
-            (np.array([0, 0.999*z[0]]), z, np.array([maxz]))
-        )
-        yp = np.concatenate((
-            np.array([msl, msl-rho*grav*0.999*z[0]]),
-            levs_in, np.array([100.])
-        ))
-
-        p_line[0, :] = np.interp(zzr, xp, yp)
-
-        p_in = np.concatenate((p_in, p_line))
-
-    return p_in
+    return p_um
 
 
-def vert_interp(var_in, z_in, z_out):
-    """Makes a vertical interpolation of the variable var_in
+def interp_ht(dat, z_old, z_new):
 
-    Input:
-        var_in: variable to be interpolated, dimensions (nrec, nlvls)
-        z_out: eta_rho levels of the um
-        z_in: Z levels of the ERA-Interim
+    return_dat = np.empty((0, len(z_new)))
 
+    for d, z in zip(dat, z_old):
+        if z[0] > z[-1]:
+            n = np.interp(z_new, z[::-1], d[::-1])
+        else:
+            n = np.interp(z_new, z, d)
+        return_dat = np.concatenate((return_dat, n[np.newaxis, :]))
+
+    return return_dat
+
+
+def surface_distance_y(lat1, lat2):
+    """(number, number) -> float
+
+    Returns the distance between two latitudes.
+
+    >>> surface_distance_y(0., 1.)
+    111198.76636891312
     """
 
-    var_out = np.empty((0, len(z_out)))
-
-    for v, z in zip(var_in, z_in):
-        v_um = np.interp(z_out, z, v)
-        var_out = np.concatenate((var_out, v_um[np.newaxis, :]), axis=0)
-
-    return var_out
+    r_earth = 6371220
+    return (np.pi * r_earth) / 180.0 * abs(lat2 - lat1)
 
 
-def spatially_interpolate(conf, read_vars, idxs):
-    """( Namelist, dict, dict ) -> dict
+def surface_distance_x(lon1, lon2, lat):
+    """(number, number, number) -> float
 
-    Creates a new namelist with spacially interpolated data of conf.
-    Adds new fields for temperature and humidity gradients.
+    Returns the distance between two longitudes at a certain latitude.
+
+    >>> surface_distance_x(0., 1., 0.)
+    111198.76636891312
+    >>> surface_distance_x(0., 1., 80.)
+    19309.463138772513
     """
 
-    import genesis_helpers as h
+    def radian(angle):
+        return angle * np.pi / 180.
 
-    return_dict = {}
-
-    lon_frac = np.array(h.find_fractions(conf.lon, idxs['lon']['vals'][0],
-                                         idxs['lon']['vals'][1]))
-    lat_frac = np.array(h.find_fractions(conf.lat, idxs['lat']['vals'][0],
-                                         idxs['lat']['vals'][1]))
-
-    fracts = lon_frac[np.newaxis, :] * lat_frac[:, np.newaxis]
-
-    for var in ['U', 'V', 'T', 'Z', 'Q', 'P']:
-        if not (idxs['dims'][3] == 'lon' and idxs['dims'][2] == 'lat'):
-            raise ValueError("At the moment, can only reduce variables" +
-                             "with dimension ( time, ht, lat, lon )")
-        return_dict[var] = np.add.reduce(read_vars[var] * fracts[..., :, :],
-                                         (2, 3))
-
-    dy = h.surface_distance_y(*idxs['lat']['vals'])
-    dx = h.surface_distance_x(*idxs['lon']['vals'],
-                              lat=conf.lat)
-
-    return_dict['dx'] = dx
-    return_dict['dy'] = dy
-
-    return return_dict
+    return surface_distance_y(lon1, lon2) * np.cos(radian(lat))
 
 
 def replace_namelist(template, out_data, conf):
@@ -346,9 +188,13 @@ def replace_namelist(template, out_data, conf):
         if conf.w_inc:
             inobsfor['w_inc'] = 'not implemented yet'
         if conf.t_inc:
-            inobsfor['t_inc'] = 'not implemented yet'
+            inobsfor['t_inc'] = (
+                out_data['gradt'].flatten(order='F').tolist()
+            )
         if conf.q_star:
-            inobsfor['q_star'] = 'not implemented yet'
+            inobsfor['q_star'] = (
+                out_data['gradq'].flatten(order='F').tolist()
+            )
 
     if conf.ui:
         inprof['ui'] = out_data['u'][0, :].flatten(order='F').tolist()
@@ -359,9 +205,9 @@ def replace_namelist(template, out_data, conf):
     if conf.theta:
         inprof['theta'] = out_data['theta'][0, :].flatten(order='F').tolist()
     if conf.qi:
-        inprof['qi'] = out_data['qi'][0, :].flatten(order='F').tolist()
+        inprof['qi'] = out_data['q'][0, :].flatten(order='F').tolist()
     if conf.p_in:
-        inprof['p_in'] = out_data['p_in'][0, :].flatten(order='F').tolist()
+        inprof['p_in'] = out_data['p'][0, :].flatten(order='F').tolist()
 
     indata['lat'] = conf.lat
     indata['long'] = conf.lon
@@ -400,10 +246,10 @@ def write_charney(out_vars, levs, file_name='charney.csv'):
         for i in range(out_vars['theta'].shape[1]):
             rho_lev = i < out_vars['u'].shape[1]
             w_dict = {
-                'p_um': out_vars['p_in'][-1, i],
+                'p_um': out_vars['p'][-1, i],
                 'adum': levs[i] if i < len(levs) else 0.0,
                 't_um': out_vars['t'][-1, i],
-                'pt_um': out_vars['theta'][-1, i],
+                'pt_um': out_vars['pt'][-1, i],
                 'q_um': out_vars['qi'][-1, i],
                 'u_um': out_vars['u'][-1, i] if rho_lev else 0.0,
                 'v_um': out_vars['v'][-1, i] if rho_lev else 0.0
@@ -424,25 +270,25 @@ def write_genesis(allvars, levs, file_name='genesis.csv'):
         ))
         w_dict = {
             'z': 0.0,
-            'levs': allvars['P'][0, 0],
-            't': allvars['T'][0, 0],
+            'levs': allvars['msl'][0],
+            't': allvars['t'][0, 0],
             'pt': allvars['pt'][0, 0],
-            'q': allvars['Q'][0, 0],
-            'u': allvars['U'][0, 0],
-            'v': allvars['V'][0, 0],
+            'q': allvars['q'][0, 0],
+            'u': allvars['u'][0, 0],
+            'v': allvars['v'][0, 0],
             'ug': allvars['ug'][0, 0],
             'vg': allvars['vg'][0, 0]
         }
         genesis.write(format_data.format(**w_dict))
-        for i in range(allvars['U'].shape[1]):
+        for i in range(allvars['u'].shape[1]):
             w_dict = {
-                'z': allvars['Z'][0, i],
+                'z': allvars['z'][0, i],
                 'levs': levs[i],
-                't': allvars['T'][0, i],
+                't': allvars['t'][0, i],
                 'pt': allvars['pt'][0, i],
-                'q': allvars['Q'][0, i],
-                'u': allvars['U'][0, i],
-                'v': allvars['V'][0, i],
+                'q': allvars['q'][0, i],
+                'u': allvars['u'][0, i],
+                'v': allvars['v'][0, i],
                 'ug': allvars['ug'][0, i],
                 'vg': allvars['vg'][0, i]
             }
@@ -500,56 +346,107 @@ def main():
     # in case there isn't anything given.
     conf = h.Genesis_Config(args, base)
 
-    logger = genesis_logger(conf.debug)
+    data_in = {}
+    for var in ['U', 'V', 'T', 'Z', 'Q', 'P']:
+        data_in[var] = era_dataset(var)
+        data_in[var].read_ht_array()
 
-    logger.write_by_item(args, indent=2, header='command-line parameters:')
-    logger.write(" Read from base configuration file.")
-    for k in base.keys():
-        logger.write_by_item(base[k], key_length=12, indent=4, header=k)
+        data_in[var].read_lat_array()
+        data_in[var].select_lats_near(conf.lat)
 
-    idxs = nch.get_indices(conf)
-    logger.write_by_item(idxs, indent=2, key_length=12, header='indices:')
+        data_in[var].read_lon_array()
+        data_in[var].select_lons_near(conf.lon)
 
-    units = nch.get_all_units(conf)
-    logger.write_by_item(units, indent=2, key_length=12, header='units:')
-
-    allvars = read_all_data(conf, idxs)
-    allvars, idxs, units = clean_all_vars(conf, allvars, idxs, units)
-
-    allvars_si = spatially_interpolate(conf, allvars, idxs)
-
-    pressure_levs = idxs['ht']['vals']
-    allvars_si['pt'] = calc_pt_in(allvars_si['T'], pressure_levs)
-    allvars_si['ug'] = -calc_geostrophic_winds(
-        allvars['Z'][:, :, :, 1], allvars_si['dy'], conf.lon
-        )
-    allvars_si['vg'] = calc_geostrophic_winds(
-        allvars['Z'][:, :, 0, :], allvars_si['dx'], conf.lat
+        data_in[var].select_time_array(
+            start=conf.start_date, end=conf.end_date
         )
 
-    eta_theta = h.get_eta_theta(conf)
-    eta_rho = h.get_eta_rho(conf)
-    z_in = allvars_si['Z']
-    logger.write('era_pl: ' + str(pressure_levs))
-    logger.write('eta_theta: ' + str(eta_theta))
-    logger.write('eta_rho: ' + str(eta_rho))
-    logger.write('z_in: ' +
-                 str(z_in[0, :].flatten().tolist()))
+        data_in[var].read_data()
+        data_in[var].ensure_Pa()
 
-    out_data = {}
+    data_in['Z'].convert_geop_to_m()
 
-    levs = idxs['ht']['vals']
+    dx = surface_distance_x(*data_in['Z'].lon_array.tolist(), lat=conf.lat)
+    dy = surface_distance_y(*data_in['Z'].lat_array)
 
-    out_data['p_in'] = calc_p_in(allvars_si['Z'], allvars_si['P'].flatten(),
-                                 eta_rho, levs)
-    out_data['qi'] = vert_interp(allvars_si['Q'], z_in, eta_theta)
-    out_data['theta'] = vert_interp(allvars_si['pt'], z_in, eta_theta)
-    out_data['u'] = vert_interp(allvars_si['U'], z_in, eta_rho)
-    out_data['v'] = vert_interp(allvars_si['V'], z_in, eta_rho)
-    out_data['t'] = vert_interp(allvars_si['T'], z_in, eta_theta)
+    data_xi = {}
+    for var in ['U', 'V', 'T', 'Z', 'Q', 'P']:
+        data_xi[var] = data_in[var].interp_lon(conf.lon)
 
-    write_genesis(allvars_si, levs)
-    write_charney(out_data, levs)
+    data_yi = {}
+    for var in ['T', 'Q']:
+        data_yi[var] = data_in[var].interp_lat(conf.lat)
+
+    data_si = {}
+    for var in ['U', 'V', 'T', 'Z', 'Q', 'P']:
+        data_si[var] = data_xi[var].interp_lat(conf.lat)
+
+    t_xi = data_xi['T']
+    t_yi = data_yi['T']
+    q_xi = data_xi['Q']
+    q_yi = data_yi['Q']
+
+    u_si = data_si['U'].data[:, :, 0, 0]
+    v_si = data_si['V'].data[:, :, 0, 0]
+    t_si = data_si['T'].data[:, :, 0, 0]
+    z_si = data_si['Z'].data[:, :, 0, 0]
+    q_si = data_si['Q'].data[:, :, 0, 0]
+    msl_si = data_si['P'].data[:, 0, 0, 0]
+
+    ht = data_in['Z'].ht_array
+    z_theta = np.array(conf.theta) * conf.z_top_of_model + conf.z_terrain_asl
+    z_rho = np.array(conf.rho) * conf.z_top_of_model + conf.z_terrain_asl
+
+    pt_si = calc_pt(t_si, ht)
+
+    gradtx_si = (t_xi[:, :, 1, 0] - t_xi[:, :, 0, 0]) / dx
+    gradty_si = (t_yi[:, :, 0, 1] - t_yi[:, :, 0, 0]) / dy
+    gradqx_si = (q_xi[:, :, 1, 0] - q_xi[:, :, 0, 0]) / dx
+    gradqy_si = (q_yi[:, :, 0, 1] - q_yi[:, :, 0, 0]) / dy
+
+    gradt_si = -u_si * gradtx_si + v_si * gradty_si
+    gradq_si = -u_si * gradqx_si + v_si * gradqy_si
+
+    ug = -calc_geostrophic_winds(
+        data_in['Z'].data[:, :, :, 1], dy, conf.lon
+        )
+    vg = calc_geostrophic_winds(
+        data_in['Z'].data[:, :, 0, :], dx, conf.lat
+        )
+    allvars_si = {
+        'u': u_si,
+        'v': v_si,
+        't': t_si,
+        'q': q_si,
+        'z': z_si,
+        'pt': pt_si,
+        'msl': msl_si,
+        'ug': ug,
+        'vg': vg
+    }
+    write_genesis(allvars_si, ht)
+
+    u_um = interp_ht(u_si, z_si, z_rho)
+    v_um = interp_ht(v_si, z_si, z_rho)
+    q_um = interp_ht(q_si, z_si, z_theta)
+    pt_um = interp_ht(pt_si, z_si, z_theta)
+    t_um = interp_ht(t_si, z_si, z_theta)
+    p_um = calc_p_um(ht, z_si, z_rho, msl_si)
+    gradt_um = interp_ht(gradt_si, z_theta)
+    gradq_um = interp_ht(gradq_si, z_theta)
+
+    out_data = {
+        'u': u_um,
+        'v': v_um,
+        't': t_um,
+        'pt': pt_um,
+        'q': q_um,
+        'p': p_um,
+        'gradt': gradt_um,
+        'gradq': gradq_um
+    }
+
+    write_charney(out_data, ht)
 
     template = f90nml.read(conf.template)
 
