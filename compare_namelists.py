@@ -42,7 +42,7 @@ def main():
     print('{:>7}| {:>8} {:>8} {:>8}'.format('var', 'mean', 'max', 'min'))
     for var in ['ui', 'vi', 'theta', 'qi', 'p_in']:
         print('{:>7}: {:8.2%} {:8.2%} {:8.2%}'.format(var, *calc_diff(old['inprof'][var], new['inprof'][var])))
-    for var in ['u_inc', 'v_inc']:
+    for var in ['u_inc', 'v_inc', 't_inc', 'q_star']:
         print('{:>7}: {:8.2%} {:8.2%} {:8.2%}'.format(var, *calc_diff(old['inobsfor'][var], new['inobsfor'][var])))
 
 
