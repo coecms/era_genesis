@@ -37,7 +37,13 @@ class era_dataset(object):
     lat_array = None
     lon_array = None
 
+    time_units = ''
+    ht_units = ''
+    lat_units = ''
+    lon_units = ''
+
     data = None
+    units = ''
 
     filename_list = []
     reference_date = datetime.datetime(2000, 1, 1, 0, 0)
@@ -335,7 +341,7 @@ class era_dataset(object):
         self.set_lat_len(nlat)
         self.set_lon_len(nlon)
 
-    def set_time_array(self, time_array):
+    def set_time_array(self, time_array, units=None):
         """(np.array) -> None
         Sets the time array to time_array.
         If time dimension length isn't set, it sets it.
@@ -350,8 +356,10 @@ class era_dataset(object):
                                    "ntime = {}, len(time_array = {}"
                                    ).format(self.ntime, len(time_array)))
         self.time_array = time_array
+        if units:
+            self.time_units = units
 
-    def set_ht_array(self, ht_array):
+    def set_ht_array(self, ht_array, units=None):
         """(np.array) -> None
         Sets the ht array to ht_array.
         If ht dimension length isn't set, it sets it.
@@ -366,8 +374,10 @@ class era_dataset(object):
                                    "nht = {}, len(ht_array = {}"
                                    ).format(self.nht, len(ht_array)))
         self.ht_array = ht_array
+        if units:
+            self.ht_units = units
 
-    def set_lat_array(self, lat_array):
+    def set_lat_array(self, lat_array, units=None):
         """(np.array) -> None
         Sets the lat array to lat_array.
         If lat dimension length isn't set, it sets it.
@@ -382,8 +392,10 @@ class era_dataset(object):
                                    "nlat = {}, len(lat_array = {}"
                                    ).format(self.nlat, len(lat_array)))
         self.lat_array = lat_array
+        if units:
+            self.lat_units = units
 
-    def set_lon_array(self, lon_array):
+    def set_lon_array(self, lon_array, units=None):
         """(np.array) -> None
         Sets the lon array to lon_array.
         If lon dimension length isn not set, it sets it.
@@ -398,6 +410,8 @@ class era_dataset(object):
                                    "nlon = {}, len(lon_array = {}"
                                    ).format(self.nlon, len(lon_array)))
         self.lon_array = lon_array
+        if units:
+            self.lon_units = units
 
     def __read_dim_array(self, dim_name, date=None):
         """Reads the whole dimension array
@@ -405,9 +419,10 @@ class era_dataset(object):
 
         ncid = nc.Dataset(self.get_file_name(date=date), 'r')
         return_array = ncid.variables[dim_name][:]
+        units = ncid.variables.units
         ncid.close()
 
-        return return_array
+        return return_array, units
 
     def read_ht_array(self):
         """Reads the height array into this object
@@ -417,7 +432,7 @@ class era_dataset(object):
             self.set_ht_array(np.zeros(1))
         else:
             self.set_ht_array(
-                self.__read_dim_array(self.__get_ht_name())
+                *(self.__read_dim_array(self.__get_ht_name()))
             )
         self.ht_idxs = list(range(len(self.ht_array)))
 
@@ -426,7 +441,7 @@ class era_dataset(object):
         """
 
         self.set_lat_array(
-            self.__read_dim_array(self.__get_lat_name())
+            *(self.__read_dim_array(self.__get_lat_name()))
         )
         self.lat_idxs = list(range(len(self.lat_array)))
 
@@ -435,7 +450,7 @@ class era_dataset(object):
         """
 
         self.set_lon_array(
-            self.__read_dim_array(self.__get_lon_name())
+            *(self.__read_dim_array(self.__get_lon_name()))
         )
         self.lon_idxs = list(range(len(self.lon_array)))
 
@@ -444,7 +459,7 @@ class era_dataset(object):
         """
 
         self.set_time_array(
-            self.__read_dim_array(self.__get_time_name(), date=date)
+            *(self.__read_dim_array(self.__get_time_name(), date=date))
         )
         self.time_idxs = list(range(len(self.time_array)))
 
@@ -531,6 +546,7 @@ class era_dataset(object):
         varname = self.__get_var_name()
         for f, t in zip(self.filename_list, self.time_idxs):
             ncid = nc.Dataset(f, 'r')
+            units = ncid.variables[varname].units
             if self.var == 'P':
                 data = ncid.variables[varname][t, self.lat_idxs, self.lon_idxs]
                 data.shape = (data.shape[0], 1, data.shape[1], data.shape[2])
@@ -538,7 +554,9 @@ class era_dataset(object):
                 data = ncid.variables[varname][t, self.ht_idxs, self.lat_idxs,
                                                self.lon_idxs]
             data_array = np.concatenate((data_array, data), axis=0)
+            ncid.close()
         self.data = data_array
+        self.units = units
 
 
 if __name__ == '__main__':
@@ -556,3 +574,4 @@ if __name__ == '__main__':
     u.read_data()
 
     print(u.data[:, 0, :, 0])
+    print(u.units)
