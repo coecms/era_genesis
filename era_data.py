@@ -419,7 +419,7 @@ class era_dataset(object):
 
         ncid = nc.Dataset(self.get_file_name(date=date), 'r')
         return_array = ncid.variables[dim_name][:]
-        units = ncid.variables.units
+        units = ncid.variables[dim_name].units
         ncid.close()
 
         return return_array, units
