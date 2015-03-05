@@ -646,5 +646,11 @@ if __name__ == '__main__':
     u.select_time_array(start='2000-01-31 12', end='2000-02-01 06')
     u.read_data()
 
-    print(u.data[:, 0, :, 0])
+    print(u.data[0, 0, :, :])
     print(u.units)
+
+    u_xi = u.interp_lon(147.2)
+    print(u_xi.data[0, 0, :, :])
+
+    u_si = u_xi.interp_lat(37.5)
+    print(u_si.data[0, 0, :, :])
