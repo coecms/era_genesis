@@ -558,6 +558,27 @@ class era_dataset(object):
         self.data = data_array
         self.units = units
 
+    def ensure_Pa(self):
+        """Ensure that Pressure units is Pascal and not hPa
+        """
+        if self.ht_units == 'hPa':
+            self.ht_array *= 100.0
+            self.ht_units = 'Pa'
+        if self.units == 'hPa':
+            self.data *= 100.0
+            self.units = 'Pa'
+
+    def convert_geop_to_meters(self):
+        """Converts the geopotential to meters by dividing
+        everything by g."""
+
+        from genesis_globals import grav
+
+        assert(self.var == 'Z')
+        if self.units == 'm**2 s**-2':
+            self.data *= (1.0 / grav)
+            self.units = 'm'
+
 
 if __name__ == '__main__':
 
