@@ -7,6 +7,24 @@ import numpy as np
 import datetime
 
 
+class logger(object):
+
+    active = False
+
+    def __init__(self, active):
+        self.active = active
+
+    def set_active(self):
+        self.active = True
+
+    def set_deactive(self):
+        self.active = False
+
+    def log(self, value):
+        if self.active:
+            print(value)
+
+
 class Genesis_Config(object):
     """Stores various configuration options. Gets its data from both
     arguments and the base namelist.

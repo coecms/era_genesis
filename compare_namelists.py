@@ -8,7 +8,7 @@ def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-o', '--old-genesis', metavar='FILE', default='namelist.scm')
     parser.add_argument('-n', '--new-genesis', metavar='FILE', default='delme.scm')
-    parser.add_argument('-i', '--index', default=0)
+    parser.add_argument('-i', '--index', default=0, type=int)
 
     args = parser.parse_args()
     return args
@@ -29,7 +29,7 @@ def calc_diff(var1, var2, idx):
         diff = 2 * (v1 - v2) / (v1 + v2)
 
 
-    return np.mean(abs(diff)), np.max(diff), np.min(diff), v1[0], v2[0]
+    return np.mean(abs(diff)), np.max(diff), np.min(diff), v1[idx], v2[idx]
 
 
 

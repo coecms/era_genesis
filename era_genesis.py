@@ -348,6 +348,8 @@ def main():
     # in case there isn't anything given.
     conf = h.Genesis_Config(args, base)
 
+    logger = h.logger(conf.debug)
+
     data_in = {}
     for var in ['U', 'V', 'T', 'Z', 'Q', 'P']:
         data_in[var] = era_dataset(var)
@@ -366,23 +368,34 @@ def main():
         data_in[var].read_data()
         data_in[var].ensure_Pa()
         data_in[var].ensure_ascending()
+        logger.log('var {} read. Shape is {}'.format(var, data_in[var].data.shape))
 
     data_in['Z'].convert_geop_to_m()
+    logger.log('Z converted to metres')
 
     dx = surface_distance_x(*data_in['Z'].lon_array.tolist(), lat=conf.lat)
+    logger.log('dx = {}'.format(dx))
+
     dy = surface_distance_y(*data_in['Z'].lat_array)
+    logger.log('dy = {}'.format(dy))
 
     data_xi = {}
     for var in ['U', 'V', 'T', 'Z', 'Q', 'P']:
         data_xi[var] = data_in[var].interp_lon(conf.lon)
+        logger.log('{} interpolated all -> xi, shape = {}'.format(
+            var, data_xi[var].data.shape))
 
     data_yi = {}
     for var in ['T', 'Q']:
         data_yi[var] = data_in[var].interp_lat(conf.lat)
+        logger.log('{} interpolated all -> yi, shape = {}'.format(
+            var, data_yi[var].data.shape))
 
     data_si = {}
     for var in ['U', 'V', 'T', 'Z', 'Q', 'P']:
         data_si[var] = data_xi[var].interp_lat(conf.lat)
+        logger.log('{} interpolated xi -> si, shape = {}'.format(
+            var, data_si[var].data.shape))
 
     t_xi = data_xi['T'].data
     t_yi = data_yi['T'].data
@@ -399,16 +412,26 @@ def main():
     ht = data_in['Z'].ht_array
     z_theta = np.array(conf.eta_theta) * conf.z_top_of_model + conf.z_terrain_asl
     z_rho = np.array(conf.eta_rho) * conf.z_top_of_model + conf.z_terrain_asl
+    logger.log('ht: {}'.format(ht))
+    logger.log('z_theta: {}'.format(z_theta))
+    logger.log('z_rho: {}'.format(z_rho))
 
     pt_si = calc_pt(t_si, ht)
+    logger.log('calculated pt_si: {}'.format(pt_si[0, :]))
 
     gradtx_si = (t_yi[:, :, 0, 1] - t_yi[:, :, 0, 0]) / dx
     gradty_si = (t_xi[:, :, 1, 0] - t_xi[:, :, 0, 0]) / dy
     gradqx_si = (q_yi[:, :, 0, 1] - q_yi[:, :, 0, 0]) / dx
     gradqy_si = (q_xi[:, :, 1, 0] - q_xi[:, :, 0, 0]) / dy
+    logger.log('calculated gradtx_si: {}'.format(gradtx_si[0, :]))
+    logger.log('calculated gradty_si: {}'.format(gradty_si[0, :]))
+    logger.log('calculated gradqx_si: {}'.format(gradqx_si[0, :]))
+    logger.log('calculated gradqy_si: {}'.format(gradqy_si[0, :]))
 
     gradt_si = -u_si * gradtx_si + v_si * gradty_si
     gradq_si = -u_si * gradqx_si + v_si * gradqy_si
+    logger.log('calculated gradt_si: {}'.format(gradt_si[0, :]))
+    logger.log('calculated gradq_si: {}'.format(gradq_si[0, :]))
 
     ug = -calc_geostrophic_winds(
         data_in['Z'].data[:, :, :, 1], dy, conf.lon
@@ -428,6 +451,7 @@ def main():
         'vg': vg
     }
     write_genesis(allvars_si, ht)
+    logger.log('written genesis.csv, compare to genesis.scm of original genesis program')
 
     u_um = interp_ht(u_si, z_si, z_rho)
     v_um = interp_ht(v_si, z_si, z_rho)
