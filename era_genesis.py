@@ -402,8 +402,8 @@ def main():
 
     pt_si = calc_pt(t_si, ht)
 
-    gradtx_si = (t_xi[:, :, 1, 0] - t_xi[:, :, 0, 0]) / dx
-    gradty_si = (t_yi[:, :, 0, 1] - t_yi[:, :, 0, 0]) / dy
+    gradtx_si = (t_yi[:, :, 0, 1] - t_yi[:, :, 0, 0]) / dx
+    gradty_si = (t_xi[:, :, 1, 0] - t_xi[:, :, 0, 0]) / dy
     gradqx_si = (q_xi[:, :, 1, 0] - q_xi[:, :, 0, 0]) / dx
     gradqy_si = (q_yi[:, :, 0, 1] - q_yi[:, :, 0, 0]) / dy
 
