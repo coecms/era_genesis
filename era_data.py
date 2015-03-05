@@ -579,6 +579,58 @@ class era_dataset(object):
             self.data *= (1.0 / grav)
             self.units = 'm'
 
+    def interp_lon(self, lon):
+        """Returns a copy of this dataset, except that the longitude
+        dimension is reduced to len=1 and set to the value of lon.
+        Data is lineraly interpolated.
+        """
+
+        return_set = era_dataset(self.var)
+        return_set.set_time_array(self.time_array, self.time_units)
+        return_set.set_ht_array(self.ht_array, self.ht_units)
+        return_set.set_lat_array(self.lat_array, self.lat_units)
+        return_set.set_lon_array(np.array([lon]), self.lon_units)
+        return_set.reference_date = self.reference_date
+        return_set.units = self.units
+
+        return_set.data = np.empty((self.ntime, self.nht, self.nlat, 1))
+
+        for t in range(self.ntime):
+            for h in range(self.nht):
+                for lat in range(self.nlat):
+                    return_set.data[t, h, lat, 0] = self.interp(
+                        lon,
+                        self.lon_array,
+                        self.data[t, h, lat, :].flatten()
+                    )
+        return return_set
+
+    def interp_lat(self, lat):
+        """Returns a copy of this dataset, except that the longitude
+        dimension is reduced to len=1 and set to the value of lon.
+        Data is lineraly interpolated.
+        """
+
+        return_set = era_dataset(self.var)
+        return_set.set_time_array(self.time_array, self.time_units)
+        return_set.set_ht_array(self.ht_array, self.ht_units)
+        return_set.set_lat_array(np.array([lat]), self.lat_units)
+        return_set.set_lon_array(self.lon_array, self.lon_units)
+        return_set.reference_date = self.reference_date
+        return_set.units = self.units
+
+        return_set.data = np.empty((self.ntime, self.nht, 1, self.nlon))
+
+        for t in range(self.ntime):
+            for h in range(self.nht):
+                for lon in range(self.nlon):
+                    return_set.data[t, h, 0, lon] = self.interp(
+                        lat,
+                        self.lat_array,
+                        self.data[t, h, :, lon].flatten()
+                    )
+        return return_set
+
 
 if __name__ == '__main__':
 
