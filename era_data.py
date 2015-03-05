@@ -579,6 +579,14 @@ class era_dataset(object):
             self.data *= (1.0 / grav)
             self.units = 'm'
 
+    def __interp(self, x, xp, fp, left=None, right=None):
+        """Wrapper for np.interp for when xp is descending."""
+
+        if xp[0] > xp[-1]:
+            return np.interp(x, xp[::-1], fp[::-1], left, right)
+        else:
+            return np.interp(x, xp, fp, left, right)
+
     def interp_lon(self, lon):
         """Returns a copy of this dataset, except that the longitude
         dimension is reduced to len=1 and set to the value of lon.
@@ -598,7 +606,7 @@ class era_dataset(object):
         for t in range(self.ntime):
             for h in range(self.nht):
                 for lat in range(self.nlat):
-                    return_set.data[t, h, lat, 0] = self.interp(
+                    return_set.data[t, h, lat, 0] = self.__interp(
                         lon,
                         self.lon_array,
                         self.data[t, h, lat, :].flatten()
@@ -624,7 +632,7 @@ class era_dataset(object):
         for t in range(self.ntime):
             for h in range(self.nht):
                 for lon in range(self.nlon):
-                    return_set.data[t, h, 0, lon] = self.interp(
+                    return_set.data[t, h, 0, lon] = self.__interp(
                         lat,
                         self.lat_array,
                         self.data[t, h, :, lon].flatten()
