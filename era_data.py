@@ -513,6 +513,7 @@ class era_dataset(object):
             files.append(file_name)
             ncid = nc.Dataset(file_name, 'r')
             time_var = ncid.variables[self.__get_time_name()]
+            units = time_var.units
 
             # Convert the time data into a numpy array.
             times = time_var[:]
@@ -534,10 +535,11 @@ class era_dataset(object):
             times_vals += t_vals
 
             date = next_month(date)
+            ncid.close()
 
         self.filename_list = files
         self.time_idxs = times_idxs
-        self.time_array = np.array(times_vals)
+        self.set_time_array(np.array(times_vals), units)
 
     def read_data(self):
         """Reads the data from the ERA NetCDF files"""
@@ -646,7 +648,7 @@ if __name__ == '__main__':
     u.read_ht_array()
 
     u.read_lat_array()
-    u.select_lats_near(37.5)
+    u.select_lats_near(37.2)
 
     u.read_lon_array()
     u.select_lons_near(147.2)
@@ -658,7 +660,8 @@ if __name__ == '__main__':
     print(u.units)
 
     u_xi = u.interp_lon(147.2)
+    print(u_xi.data.shape)
     print(u_xi.data[0, 0, :, :])
 
-    u_si = u_xi.interp_lat(37.5)
+    u_si = u_xi.interp_lat(37.2)
     print(u_si.data[0, 0, :, :])
