@@ -404,8 +404,8 @@ def main():
 
     gradtx_si = (t_yi[:, :, 0, 1] - t_yi[:, :, 0, 0]) / dx
     gradty_si = (t_xi[:, :, 1, 0] - t_xi[:, :, 0, 0]) / dy
-    gradqx_si = (q_xi[:, :, 1, 0] - q_xi[:, :, 0, 0]) / dx
-    gradqy_si = (q_yi[:, :, 0, 1] - q_yi[:, :, 0, 0]) / dy
+    gradqx_si = (q_yi[:, :, 0, 1] - q_yi[:, :, 0, 0]) / dx
+    gradqy_si = (q_xi[:, :, 1, 0] - q_xi[:, :, 0, 0]) / dy
 
     gradt_si = -u_si * gradtx_si + v_si * gradty_si
     gradq_si = -u_si * gradqx_si + v_si * gradqy_si
