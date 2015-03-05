@@ -29,7 +29,7 @@ except:
 def calc_pt(t_si, ht):
     from genesis_globals import rcp
 
-    pt_si = np.empty(0, t_si.shape[1])
+    pt_si = np.empty((0, t_si.shape[1]))
     for t in t_si:
         pt = t[:] * (1e5/ht[:])**rcp
         pt_si = np.concatenate((pt_si, pt[np.newaxis, :]))
@@ -75,7 +75,7 @@ p_um = {  interp_ht(HT, z_si, z_rho                 for z[0] <= z_rho <= z[-1]
         else:
             return np.interp(x, xp, fp)
 
-    p_um = np.empty((z_si.shape[0], len(z_rho)))
+    p_um = np.empty((z_si.shape[0], len(z_rho)+1))
 
     for rec in range(z_si.shape[0]):
         for i in range(len(z_rho)):
@@ -85,6 +85,8 @@ p_um = {  interp_ht(HT, z_si, z_rho                 for z[0] <= z_rho <= z[-1]
                 p_um[rec, i] = ht[-1] * (maxz - z_rho[i])/(maxz - z_si[rec, -1])
             else:
                 p_um[rec, i] = interp(z_rho[i], z_si[rec, :], ht[:])
+
+    p_um[:, -1] = 100.0
 
     return p_um
 
@@ -203,7 +205,7 @@ def replace_namelist(template, out_data, conf):
     if conf.wi:
         inprof['wi'] = 'not implemented yet'
     if conf.theta:
-        inprof['theta'] = out_data['theta'][0, :].flatten(order='F').tolist()
+        inprof['theta'] = out_data['pt'][0, :].flatten(order='F').tolist()
     if conf.qi:
         inprof['qi'] = out_data['q'][0, :].flatten(order='F').tolist()
     if conf.p_in:
@@ -243,14 +245,14 @@ def write_charney(out_vars, levs, file_name='charney.csv'):
             'v_um': "Wind V"
         }
         charney.write(format_header.format(**w_dict))
-        for i in range(out_vars['theta'].shape[1]):
+        for i in range(out_vars['pt'].shape[1]):
             rho_lev = i < out_vars['u'].shape[1]
             w_dict = {
                 'p_um': out_vars['p'][-1, i],
                 'adum': levs[i] if i < len(levs) else 0.0,
                 't_um': out_vars['t'][-1, i],
                 'pt_um': out_vars['pt'][-1, i],
-                'q_um': out_vars['qi'][-1, i],
+                'q_um': out_vars['q'][-1, i],
                 'u_um': out_vars['u'][-1, i] if rho_lev else 0.0,
                 'v_um': out_vars['v'][-1, i] if rho_lev else 0.0
             }
@@ -363,6 +365,7 @@ def main():
 
         data_in[var].read_data()
         data_in[var].ensure_Pa()
+        data_in[var].ensure_ascending()
 
     data_in['Z'].convert_geop_to_m()
 
@@ -381,10 +384,10 @@ def main():
     for var in ['U', 'V', 'T', 'Z', 'Q', 'P']:
         data_si[var] = data_xi[var].interp_lat(conf.lat)
 
-    t_xi = data_xi['T']
-    t_yi = data_yi['T']
-    q_xi = data_xi['Q']
-    q_yi = data_yi['Q']
+    t_xi = data_xi['T'].data
+    t_yi = data_yi['T'].data
+    q_xi = data_xi['Q'].data
+    q_yi = data_yi['Q'].data
 
     u_si = data_si['U'].data[:, :, 0, 0]
     v_si = data_si['V'].data[:, :, 0, 0]
@@ -394,8 +397,8 @@ def main():
     msl_si = data_si['P'].data[:, 0, 0, 0]
 
     ht = data_in['Z'].ht_array
-    z_theta = np.array(conf.theta) * conf.z_top_of_model + conf.z_terrain_asl
-    z_rho = np.array(conf.rho) * conf.z_top_of_model + conf.z_terrain_asl
+    z_theta = np.array(conf.eta_theta) * conf.z_top_of_model + conf.z_terrain_asl
+    z_rho = np.array(conf.eta_rho) * conf.z_top_of_model + conf.z_terrain_asl
 
     pt_si = calc_pt(t_si, ht)
 
@@ -432,8 +435,8 @@ def main():
     pt_um = interp_ht(pt_si, z_si, z_theta)
     t_um = interp_ht(t_si, z_si, z_theta)
     p_um = calc_p_um(ht, z_si, z_rho, msl_si)
-    gradt_um = interp_ht(gradt_si, z_theta)
-    gradq_um = interp_ht(gradq_si, z_theta)
+    gradt_um = interp_ht(gradt_si, z_si, z_theta)
+    gradq_um = interp_ht(gradq_si, z_si, z_theta)
 
     out_data = {
         'u': u_um,

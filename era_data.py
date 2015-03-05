@@ -570,7 +570,16 @@ class era_dataset(object):
             self.data *= 100.0
             self.units = 'Pa'
 
-    def convert_geop_to_meters(self):
+
+    def ensure_ascending(self):
+
+        if self.var != 'P':
+            if self.ht_array[0] < self.ht_array[-1]:
+                self.ht_array = self.ht_array[::-1]
+                self.data[:, :, :, :] = self.data[:, ::-1, :, :]
+
+
+    def convert_geop_to_m(self):
         """Converts the geopotential to meters by dividing
         everything by g."""
 
