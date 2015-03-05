@@ -1,0 +1,79 @@
+Inputs:
+    ERA-Interim Files: U, V, T, Q, Z, MSL (== P), HT (pressure levs)
+    Base file: eta_rho, eta_theta
+    Inputs: lat, lon
+
+z_rho = base.eta_rho * base.z_top_of_model + z_terrain_asl
+z_theta = base.eta_theta * base.z_top_of_model + z_terrain_asl
+
+Z = Z / 9.81
+MSL = MSL * 100.0 if units == hPa
+HT = HT * 100.0 if units == hPa
+
+
+# Endings of the following vars:
+#   _xi -> interpolated in longitude.                   (nrec, nht, 2, 1) 
+#   _yi -> interpolated in latitude                     (nrec, nht, 1, 2)
+#   _si -> interpolated in longitude and latitude       (nrec, nht, 1, 1)
+#   _um -> on the UM grid                               (nrec, umlevs(+1))
+
+*_xi = interp_lon(*, lon)
+*_si = interp_lat(*_xi, lat)
+
+pt_si = t_si * (100000/HT)^rcp
+
+# The next is how it is in the original genesis. I think this is a bug, 
+# I think correct would be 
+#   gradtx_si = (t_yi[:, :, :, 1] - t_yi[:, :, :, 0]) / dx
+#   gradty_si = (t_xi[:, :, 1, :] - t_xi[:, :, 0, :]) / dy
+#   gradqx_si = (q_yi[:, :, :, 1] - q_yi[:, :, :, 0]) / dx
+#   gradqy_si = (q_xi[:, :, 1, :] - q_xi[:, :, 0, :]) / dy
+gradtx_si = (t_xi[:, :, 1, :] - t_xi[:, :, 0, :]) / dx
+gradty_si = (t_yi[:, :, :, 1] - t_yi[:, :, :, 0]) / dy
+gradqx_si = (q_xi[:, :, 1, :] - q_xi[:, :, 0, :]) / dx
+gradqy_si = (q_yi[:, :, :, 1] - q_yi[:, :, :, 0]) / dy
+
+gradt_si = -u_si * gradtx_si + v_si * gradty_si
+gradq_si = -u_si * gradqx_si + v_si * gradqy_si
+
+u_um = interp_ht(u_si, z_si, z_rho)
+v_um = interp_ht(v_si, z_si, z_rho)
+q_um = interp_ht(q_si, z_si, z_theta)
+pt_um = interp_ht(pt_si, z_si, z_theta)
+t_um = interp_ht(t_si, z_si, z_theta)
+        / MSL - rho*grav*z_rho                      for z_rho < z_si[0]
+p_um = {  interp_ht(HT, z_si, z_rho                 for z[0] <= z_rho <= z[-1]
+        \ HT[-1] * (maxz - z_rho)/(maxz - z[-1])    for z[-1] < z_rho
+
+gradt_um = interp_ht(gradt_si, z_theta)
+gradq_um = interp_ht(gradp_si, z_theta)
+
+Outputs:
+*   inprof.ui = u_um[0, :]
+*   inprof.vi = v_um[0, :]
+*   inprof.theta = pt_um[0, :]
+*   inprof.qi = q_um[0, :]
+*   inprof.p_in = p_um[0, :]
+
+    if windrlx:
+*       inobsfor.tau_rlx = seconds per time step
+*       inobsfor.u_inc = u_um             
+*       inobsfor.v_inc = v_um             
+*       inobsfor.t_inc = (t_um[1:, :] - t_um[:-1, :]) * num of timesteps per day
+*       inobsfor.q_star = (q_um[1:, :] - q_um[:-1, :]) * num of timesteps per day             
+    else:
+*       inobsfor.u_inc = u_um[1:, :] - u_um[:-1, :]
+*       inobsfor.v_inc = v_um[1:, :] - v_um[:-1, :]
+*       inobsfor.t_inc = gradt_um
+*       inobsfor.q_star = gradq_um
+    
+*   indata.lat = lat
+*   indata.long = lon
+*   indata.year_init = start_date.year
+*   indata.month_init = start_date.month
+*   indata.day_init = start_date.day
+*   indata.hour_init = start_date.hour
+
+*   rundata.nminin = total number of minutes for the run
+
+*   inobsfor.tstar_forcing = [288.0 for each time step]
