@@ -209,7 +209,7 @@ def replace_namelist(template, out_data, conf):
     if conf.qi:
         inprof['qi'] = out_data['q'][0, :].flatten(order='F').tolist()
     if conf.p_in:
-        inprof['p_in'] = out_data['p'][0, :].flatten(order='F').tolist()
+        inprof['p_in'] = out_data['p'][0, :-1].flatten(order='F').tolist()
 
     indata['lat'] = conf.lat
     indata['long'] = conf.lon
