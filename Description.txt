@@ -33,8 +33,8 @@ gradty_si = (t_yi[:, :, 0, 1] - t_yi[:, :, 0, 0]) / dy
 gradqx_si = (q_xi[:, :, 1, 0] - q_xi[:, :, 0, 0]) / dx
 gradqy_si = (q_yi[:, :, 0, 1] - q_yi[:, :, 0, 0]) / dy
 
-gradt_si = -u_si * gradtx_si + v_si * gradty_si
-gradq_si = -u_si * gradqx_si + v_si * gradqy_si
+gradt_si = -(u_si * gradtx_si + v_si * gradty_si) * sec per day
+gradq_si = -(u_si * gradqx_si + v_si * gradqy_si) * sec per day
 
 u_um = interp_ht(u_si, z_si, z_rho)
 v_um = interp_ht(v_si, z_si, z_rho)
