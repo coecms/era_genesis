@@ -29,7 +29,7 @@ def calc_diff(var1, var2, idx):
         diff = 2 * (v1 - v2) / (v1 + v2)
 
 
-    return np.mean(abs(diff)), np.max(diff), np.min(diff), v1[idx], v2[idx]
+    return np.mean(abs(diff)), np.max(diff), np.min(diff), v1[idx], v2[idx], len(var1), len(var2)
 
 
 
@@ -40,11 +40,13 @@ def main():
     old = f90nml.read(args.old_genesis)
     new = f90nml.read(args.new_genesis)
 
-    print('{:>7}| {:>8} {:>8} {:>8} {:>10} {:>10}'.format('var', 'mean', 'max', 'min', 'old', 'new'))
+    print('{:>7}| {:>8} {:>8} {:>8} {:>10} {:>10} {:>8} {:>8}'.format(
+        'var', 'mean', 'max', 'min', 'old', 'new', 'len(old)', 'len(new)'
+    ))
     for var in ['ui', 'vi', 'theta', 'qi', 'p_in']:
-        print('{:>7}: {:8.2%} {:8.2%} {:8.2%} {:10.2e} {:10.2e}'.format(var, *calc_diff(old['inprof'][var], new['inprof'][var], args.index)))
+        print('{:>7}: {:8.2%} {:8.2%} {:8.2%} {:10.2e} {:10.2e} {:>8} {:>8}'.format(var, *calc_diff(old['inprof'][var], new['inprof'][var], args.index)))
     for var in ['u_inc', 'v_inc', 't_inc', 'q_star']:
-        print('{:>7}: {:8.2%} {:8.2%} {:8.2%} {:10.2e} {:10.2e}'.format(var, *calc_diff(old['inobsfor'][var], new['inobsfor'][var], args.index)))
+        print('{:>7}: {:8.2%} {:8.2%} {:8.2%} {:10.2e} {:10.2e} {:>8} {:>8}'.format(var, *calc_diff(old['inobsfor'][var], new['inobsfor'][var], args.index)))
 
 
 
