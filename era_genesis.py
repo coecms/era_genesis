@@ -430,6 +430,11 @@ def main():
 
     gradt_si = -u_si * gradtx_si + v_si * gradty_si
     gradq_si = -u_si * gradqx_si + v_si * gradqy_si
+
+    # Change units for gradients from 'per second' to 'per day'
+    gradt_si *= 24 * 60 * 60
+    gradq_si *= 24 * 60 * 60
+
     logger.log('calculated gradt_si: {}'.format(gradt_si[0, :]))
     logger.log('calculated gradq_si: {}'.format(gradq_si[0, :]))
 
