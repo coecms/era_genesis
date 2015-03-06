@@ -350,6 +350,7 @@ def main():
 
     logger = h.logger(conf.debug)
 
+    # Read the data from the ERA-Interim NetCDF files
     data_in = {}
     for var in ['U', 'V', 'T', 'Z', 'Q', 'P']:
         data_in[var] = era_dataset(var)
@@ -366,31 +367,46 @@ def main():
         )
 
         data_in[var].read_data()
+
+        # Make sure that the pressure variables (ht, MSL) are in units of Pa, not hPa
         data_in[var].ensure_Pa()
+
+        # Make sure that the vertical dimension is in ascending order (decending
+        # values of pressure)
         data_in[var].ensure_ascending()
+
         logger.log('var {} read. Shape is {}'.format(var, data_in[var].data.shape))
 
+    logger.log('latitudes: {}'.format(data_in['Z'].lat_array))
+    logger.log('longitudes: {}'.format(data_in['Z'].lon_array))
+
+    # Convert the Geopotential to height in metres
     data_in['Z'].convert_geop_to_m()
     logger.log('Z converted to metres')
 
+    # Calculate the surface distances dx and dy
     dx = surface_distance_x(*data_in['Z'].lon_array.tolist(), lat=conf.lat)
-    logger.log('dx = {}'.format(dx))
-
     dy = surface_distance_y(*data_in['Z'].lat_array)
+    logger.log('dx = {}'.format(dx))
     logger.log('dy = {}'.format(dy))
 
+    # Interpolate the data along its longitude
     data_xi = {}
     for var in ['U', 'V', 'T', 'Z', 'Q', 'P']:
         data_xi[var] = data_in[var].interp_lon(conf.lon)
         logger.log('{} interpolated all -> xi, shape = {}'.format(
             var, data_xi[var].data.shape))
 
+    # To calculate its gradients, we need the latitude-only interpolated data of
+    # the temperature and the specific humidity.
     data_yi = {}
     for var in ['T', 'Q']:
         data_yi[var] = data_in[var].interp_lat(conf.lat)
         logger.log('{} interpolated all -> yi, shape = {}'.format(
             var, data_yi[var].data.shape))
 
+    # Interpolate the data along the latitude as well so that we now have the
+    # values for the one location we are looking at.
     data_si = {}
     for var in ['U', 'V', 'T', 'Z', 'Q', 'P']:
         data_si[var] = data_xi[var].interp_lat(conf.lat)
@@ -409,6 +425,11 @@ def main():
     q_si = data_si['Q'].data[:, :, 0, 0]
     msl_si = data_si['P'].data[:, 0, 0, 0]
 
+    # 4 Height arrays:
+    #  ht is the height dimension of the netCDF vars, and is in pressure
+    #  z_theta and z_rho come from the base.inp namelist and are in metres
+    #  z_si is actually the data from one file, and tells how high each pressure
+    #       level is in metres for each timestep
     ht = data_in['Z'].ht_array
     z_theta = np.array(conf.eta_theta) * conf.z_top_of_model + conf.z_terrain_asl
     z_rho = np.array(conf.eta_rho) * conf.z_top_of_model + conf.z_terrain_asl
@@ -416,21 +437,32 @@ def main():
     logger.log('z_theta: {}'.format(z_theta))
     logger.log('z_rho: {}'.format(z_rho))
 
+    # Potential temperature is calculated from the actual temperature and the
+    # pressure level.
     pt_si = calc_pt(t_si, ht)
     logger.log('calculated pt_si: {}'.format(pt_si[0, :]))
 
+    # This is a bit dodgy: I think that the original genesis code calculated the
+    # temperature and humidity gradients wrongly. For example, gradtx, which is
+    # eventually multiplied with u, I expect should contain the temperature
+    # gradient in x-direction, so east-west. And it is devided by dx, the
+    # distance between east and west. But the difference is taken between the
+    # north and the south values.
+    # So set the next value to False to use what I think is the right
+    # calculation, or to true to behave in the same way as the original genesis
+    # code.
     use_genesis_calculation_for_gradients = True
 
     if use_genesis_calculation_for_gradients:
-        gradtx_si = (t_xi[:, :, 1, 0] - t_xi[:, :, 0, 0]) / dx
+        gradtx_si = (t_xi[:, :, 0, 0] - t_xi[:, :, 1, 0]) / dx
         gradty_si = (t_yi[:, :, 0, 1] - t_yi[:, :, 0, 0]) / dy
-        gradqx_si = (q_xi[:, :, 1, 0] - q_xi[:, :, 0, 0]) / dx
+        gradqx_si = (q_xi[:, :, 0, 0] - q_xi[:, :, 1, 0]) / dx
         gradqy_si = (q_yi[:, :, 0, 1] - q_yi[:, :, 0, 0]) / dy
     else:
         gradtx_si = (t_yi[:, :, 0, 1] - t_yi[:, :, 0, 0]) / dx
-        gradty_si = (t_xi[:, :, 1, 0] - t_xi[:, :, 0, 0]) / dy
+        gradty_si = (t_xi[:, :, 0, 0] - t_xi[:, :, 1, 0]) / dy
         gradqx_si = (q_yi[:, :, 0, 1] - q_yi[:, :, 0, 0]) / dx
-        gradqy_si = (q_xi[:, :, 1, 0] - q_xi[:, :, 0, 0]) / dy
+        gradqy_si = (q_xi[:, :, 0, 0] - q_xi[:, :, 1, 0]) / dy
 
     logger.log('calculated gradtx_si: {}'.format(gradtx_si[0, :]))
     logger.log('calculated gradty_si: {}'.format(gradty_si[0, :]))
@@ -467,6 +499,8 @@ def main():
     write_genesis(allvars_si, ht)
     logger.log('written genesis.csv, compare to genesis.scm of original genesis program')
 
+    # Make a vertical interpolation to get the levels that the UM will finally
+    # need.
     u_um = interp_ht(u_si, z_si, z_rho)
     v_um = interp_ht(v_si, z_si, z_rho)
     q_um = interp_ht(q_si, z_si, z_theta)
@@ -497,11 +531,15 @@ def main():
     }
 
     write_charney(out_data, ht)
+    logger.log('written charney.csv, compare to charney.scm of original genesis program')
 
+    # Read the template for the namelist.
     template = f90nml.read(conf.template)
 
+    # Update the values that we want to change.
     out_namelist = replace_namelist(template, out_data, conf)
 
+    # Write the output.
     out_namelist.write(conf.output, force=True)
 
 
