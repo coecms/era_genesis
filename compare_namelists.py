@@ -14,20 +14,41 @@ def get_args():
     return args
 
 
-def calc_diff(var1, var2, idx):
+def calc_diff_val(v1, v2):
+    """
+
+    >>> calc_diff_val(0., 0.)
+    0.0
+    >>> calc_diff_val(1., 1.)
+    0.0
+    >>> calc_diff_val(9., 11.)
+    0.2
+    """
+
+    nenner = abs(v1 + v2)
+    zaehler = abs(v2 - v1)
+
+    if nenner > 0.0:
+        return_val = zaehler / nenner
+    else:
+        return_val = zaehler
+
+    return return_val
+
+
+def calc_diff(var1, var2, idx_in):
 
     l = min(len(var1), len(var2))
+
+    idx = min(l-1, idx_in)
 
     v1 = np.array(var1[:l])
     v2 = np.array(var2[:l])
 
     diff = np.zeros_like(v1)
 
-    if np.any(v1+v2 == 0.0):
-        diff = 2 * (v1 - v2) / np.mean(v1 + v2)
-    else:
-        diff = 2 * (v1 - v2) / (v1 + v2)
-
+    for i in range(l):
+        diff[i] = calc_diff_val(v1[i], v2[i])
 
     return np.mean(abs(diff)), np.max(diff), np.min(diff), v1[idx], v2[idx], len(var1), len(var2)
 
