@@ -314,7 +314,7 @@ def parse_arguments():
                         help='Namelist Template')
     parser.add_argument('-t', '--template', metavar='FILE',
                         default='template.scm', help='Namelist Template')
-    parser.add_argument('-o', '--output', metavar='FILE', default='t_out.scm',
+    parser.add_argument('-o', '--output', metavar='FILE', default='namelist.scm',
                         help='Output Namelist')
     parser.add_argument('-r', '--relhum', default=False, action='store_true',
                         help='Convert Relative to Specific Humidity')
