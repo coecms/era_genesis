@@ -419,17 +419,26 @@ def main():
     pt_si = calc_pt(t_si, ht)
     logger.log('calculated pt_si: {}'.format(pt_si[0, :]))
 
-    gradtx_si = (t_yi[:, :, 0, 1] - t_yi[:, :, 0, 0]) / dx
-    gradty_si = (t_xi[:, :, 1, 0] - t_xi[:, :, 0, 0]) / dy
-    gradqx_si = (q_yi[:, :, 0, 1] - q_yi[:, :, 0, 0]) / dx
-    gradqy_si = (q_xi[:, :, 1, 0] - q_xi[:, :, 0, 0]) / dy
+    use_genesis_calculation_for_gradients = True
+
+    if use_genesis_calculation_for_gradients:
+        gradtx_si = (t_xi[:, :, 1, 0] - t_xi[:, :, 0, 0]) / dx
+        gradty_si = (t_yi[:, :, 0, 1] - t_yi[:, :, 0, 0]) / dy
+        gradqx_si = (q_xi[:, :, 1, 0] - q_xi[:, :, 0, 0]) / dx
+        gradqy_si = (q_yi[:, :, 0, 1] - q_yi[:, :, 0, 0]) / dy
+    else:
+        gradtx_si = (t_yi[:, :, 0, 1] - t_yi[:, :, 0, 0]) / dx
+        gradty_si = (t_xi[:, :, 1, 0] - t_xi[:, :, 0, 0]) / dy
+        gradqx_si = (q_yi[:, :, 0, 1] - q_yi[:, :, 0, 0]) / dx
+        gradqy_si = (q_xi[:, :, 1, 0] - q_xi[:, :, 0, 0]) / dy
+
     logger.log('calculated gradtx_si: {}'.format(gradtx_si[0, :]))
     logger.log('calculated gradty_si: {}'.format(gradty_si[0, :]))
     logger.log('calculated gradqx_si: {}'.format(gradqx_si[0, :]))
     logger.log('calculated gradqy_si: {}'.format(gradqy_si[0, :]))
 
-    gradt_si = -u_si * gradtx_si + v_si * gradty_si
-    gradq_si = -u_si * gradqx_si + v_si * gradqy_si
+    gradt_si = -(u_si * gradtx_si + v_si * gradty_si)
+    gradq_si = -(u_si * gradqx_si + v_si * gradqy_si)
 
     # Change units for gradients from 'per second' to 'per day'
     gradt_si *= 24 * 60 * 60
