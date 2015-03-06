@@ -462,6 +462,15 @@ def main():
     gradt_um = interp_ht(gradt_si, z_si, z_theta)
     gradq_um = interp_ht(gradq_si, z_si, z_theta)
 
+    logger.log('u_um calculated, shape={}'.format(u_um.shape))
+    logger.log('v_um calculated, shape={}'.format(v_um.shape))
+    logger.log('t_um calculated, shape={}'.format(t_um.shape))
+    logger.log('pt_um calculated, shape={}'.format(pt_um.shape))
+    logger.log('q_um calculated, shape={}'.format(q_um.shape))
+    logger.log('p_um calculated, shape={}'.format(p_um.shape))
+    logger.log('gradt_um calculated, shape={}'.format(gradt_um.shape))
+    logger.log('gradq_um calculated, shape={}'.format(gradq_um.shape))
+
     out_data = {
         'u': u_um,
         'v': v_um,
