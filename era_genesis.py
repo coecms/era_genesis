@@ -147,6 +147,7 @@ def replace_namelist(template, out_data, conf):
 
     f = 2 * omg * np.sin(conf.lat * np.pi / 180.)
     fact = 24 / (conf.intervall.total_seconds() / 3600.0)
+    umlev = conf.nzum
 
     return_namelist = deepcopy(template)
 
@@ -180,13 +181,19 @@ def replace_namelist(template, out_data, conf):
             ).flatten(order='F').tolist()
     else:
         if conf.u_inc:
-            inobsfor['u_inc'] = ((
-                out_data['u'][1:, :] - (1.-f) * out_data['u'][:-1, :]
-            ) * fact).flatten(order='F').tolist()
+            # u_inc needs to be the increments between successive time steps.
+            # For the last time step, it needs to be all zeros.
+            u_inc = np.zeros_like(out_data['u'])
+            u_inc[:-1, :] = (
+                (out_data['u'][1:, :] - (1. - f) * out_data['u'][:-1, :]) * fact
+            )
+            inobsfor['u_inc'] = u_inc.flatten(order='F').tolist()
         if conf.v_inc:
-            inobsfor['v_inc'] = ((
-                out_data['v'][1:, :] - (1.+f) * out_data['v'][:-1, :]
-            ) * fact).flatten(order='F').tolist()
+            v_inc = np.zeros_like(out_data['v'])
+            v_inc[:-1, :] = (
+                (out_data['v'][1:, :] - (1. - f) * out_data['v'][:-1, :]) * fact
+            )
+            inobsfor['v_inc'] = v_inc.flatten(order='F').tolist()
         if conf.w_inc:
             inobsfor['w_inc'] = 'not implemented yet'
         if conf.t_inc:
@@ -199,17 +206,17 @@ def replace_namelist(template, out_data, conf):
             )
 
     if conf.ui:
-        inprof['ui'] = out_data['u'][0, :].flatten(order='F').tolist()
+        inprof['ui'] = out_data['u'][0, 0:umlev].flatten(order='F').tolist()
     if conf.vi:
-        inprof['vi'] = out_data['v'][0, :].flatten(order='F').tolist()
+        inprof['vi'] = out_data['v'][0, 0:umlev].flatten(order='F').tolist()
     if conf.wi:
         inprof['wi'] = 'not implemented yet'
     if conf.theta:
-        inprof['theta'] = out_data['pt'][0, :].flatten(order='F').tolist()
+        inprof['theta'] = out_data['pt'][0, 0:umlev].flatten(order='F').tolist()
     if conf.qi:
-        inprof['qi'] = out_data['q'][0, :].flatten(order='F').tolist()
+        inprof['qi'] = out_data['q'][0, 0:umlev].flatten(order='F').tolist()
     if conf.p_in:
-        inprof['p_in'] = out_data['p'][0, :-1].flatten(order='F').tolist()
+        inprof['p_in'] = out_data['p'][0, 0:umlev+1].flatten(order='F').tolist()
 
     indata['lat'] = conf.lat
     indata['long'] = conf.lon
@@ -314,8 +321,8 @@ def parse_arguments():
                         help='Namelist Template')
     parser.add_argument('-t', '--template', metavar='FILE',
                         default='template.scm', help='Namelist Template')
-    parser.add_argument('-o', '--output', metavar='FILE', default='namelist.scm',
-                        help='Output Namelist')
+    parser.add_argument('-o', '--output', metavar='FILE',
+                        default='namelist.scm', help='Output Namelist')
     parser.add_argument('-r', '--relhum', default=False, action='store_true',
                         help='Convert Relative to Specific Humidity')
     parser.add_argument('-d', '--debug', default=False, action='store_true',
@@ -368,14 +375,16 @@ def main():
 
         data_in[var].read_data()
 
-        # Make sure that the pressure variables (ht, MSL) are in units of Pa, not hPa
+        # Make sure that the pressure variables (ht, MSL) are in units of Pa,
+        # not hPa
         data_in[var].ensure_Pa()
 
         # Make sure that the vertical dimension is in ascending order (decending
         # values of pressure)
         data_in[var].ensure_ascending()
 
-        logger.log('var {} read. Shape is {}'.format(var, data_in[var].data.shape))
+        logger.log('var {} read. Shape is {}'.format(
+            var, data_in[var].data.shape))
 
     logger.log('latitudes: {}'.format(data_in['Z'].lat_array))
     logger.log('longitudes: {}'.format(data_in['Z'].lon_array))
@@ -431,7 +440,8 @@ def main():
     #  z_si is actually the data from one file, and tells how high each pressure
     #       level is in metres for each timestep
     ht = data_in['Z'].ht_array
-    z_theta = np.array(conf.eta_theta) * conf.z_top_of_model + conf.z_terrain_asl
+    z_theta = (
+        np.array(conf.eta_theta) * conf.z_top_of_model + conf.z_terrain_asl)
     z_rho = np.array(conf.eta_rho) * conf.z_top_of_model + conf.z_terrain_asl
     logger.log('ht: {}'.format(ht))
     logger.log('z_theta: {}'.format(z_theta))
@@ -497,7 +507,8 @@ def main():
         'vg': vg
     }
     write_genesis(allvars_si, ht)
-    logger.log('written genesis.csv, compare to genesis.scm of original genesis program')
+    logger.log('written genesis.csv, compare to genesis.scm' +
+               'of original genesis program')
 
     # Make a vertical interpolation to get the levels that the UM will finally
     # need.
@@ -531,7 +542,8 @@ def main():
     }
 
     write_charney(out_data, ht)
-    logger.log('written charney.csv, compare to charney.scm of original genesis program')
+    logger.log('written charney.csv, compare to ' +
+               'charney.scm of original genesis program')
 
     # Read the template for the namelist.
     template = f90nml.read(conf.template)
