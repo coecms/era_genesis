@@ -6,8 +6,8 @@ import numpy as np
 
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-o', '--old-genesis', metavar='FILE', default='namelist.scm')
-    parser.add_argument('-n', '--new-genesis', metavar='FILE', default='delme.scm')
+    parser.add_argument('-o', '--old-genesis', metavar='FILE', default='namelist-genesis.scm')
+    parser.add_argument('-n', '--new-genesis', metavar='FILE', default='namelist.scm')
     parser.add_argument('-i', '--index', default=0, type=int)
 
     args = parser.parse_args()

@@ -6,8 +6,8 @@ import argparse
 
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-o', '--old-genesis', metavar='FILE', default='namelist.scm')
-    parser.add_argument('-n', '--new-genesis', metavar='FILE', default='delme.scm')
+    parser.add_argument('-o', '--old-genesis', metavar='FILE', default='namelist-genesis.scm')
+    parser.add_argument('-n', '--new-genesis', metavar='FILE', default='namelist.scm')
     parser.add_argument('-v', '--var', metavar='VAR', default='q_star')
     parser.add_argument('-g', '--group', metavar='VAR', default='inobsfor')
 
