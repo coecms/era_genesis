@@ -452,27 +452,11 @@ def main():
     pt_si = calc_pt(t_si, ht)
     logger.log('calculated pt_si: {}'.format(pt_si[0, :]))
 
-    # This is a bit dodgy: I think that the original genesis code calculated the
-    # temperature and humidity gradients wrongly. For example, gradtx, which is
-    # eventually multiplied with u, I expect should contain the temperature
-    # gradient in x-direction, so east-west. And it is devided by dx, the
-    # distance between east and west. But the difference is taken between the
-    # north and the south values.
-    # So set the next value to False to use what I think is the right
-    # calculation, or to true to behave in the same way as the original genesis
-    # code.
-    use_genesis_calculation_for_gradients = True
-
-    if use_genesis_calculation_for_gradients:
-        gradtx_si = (t_xi[:, :, 0, 0] - t_xi[:, :, 1, 0]) / dx
-        gradty_si = (t_yi[:, :, 0, 1] - t_yi[:, :, 0, 0]) / dy
-        gradqx_si = (q_xi[:, :, 0, 0] - q_xi[:, :, 1, 0]) / dx
-        gradqy_si = (q_yi[:, :, 0, 1] - q_yi[:, :, 0, 0]) / dy
-    else:
-        gradtx_si = (t_yi[:, :, 0, 1] - t_yi[:, :, 0, 0]) / dx
-        gradty_si = (t_xi[:, :, 0, 0] - t_xi[:, :, 1, 0]) / dy
-        gradqx_si = (q_yi[:, :, 0, 1] - q_yi[:, :, 0, 0]) / dx
-        gradqy_si = (q_xi[:, :, 0, 0] - q_xi[:, :, 1, 0]) / dy
+    # Calculate the gradients for temperature and specific humidity
+    gradtx_si = (t_yi[:, :, 0, 1] - t_yi[:, :, 0, 0]) / dx
+    gradty_si = (t_xi[:, :, 0, 0] - t_xi[:, :, 1, 0]) / dy
+    gradqx_si = (q_yi[:, :, 0, 1] - q_yi[:, :, 0, 0]) / dx
+    gradqy_si = (q_xi[:, :, 0, 0] - q_xi[:, :, 1, 0]) / dy
 
     logger.log('calculated gradtx_si: {}'.format(gradtx_si[0, :]))
     logger.log('calculated gradty_si: {}'.format(gradty_si[0, :]))
@@ -506,7 +490,8 @@ def main():
         'ug': ug,
         'vg': vg
     }
-    write_genesis(allvars_si, ht)
+    if conf.debug:
+        write_genesis(allvars_si, ht)
     logger.log('written genesis.csv, compare to genesis.scm' +
                'of original genesis program')
 
@@ -541,7 +526,8 @@ def main():
         'gradq': gradq_um
     }
 
-    write_charney(out_data, ht)
+    if conf.debug:
+        write_charney(out_data, ht)
     logger.log('written charney.csv, compare to ' +
                'charney.scm of original genesis program')
 
