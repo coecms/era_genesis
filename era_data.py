@@ -27,6 +27,9 @@ class era_dataset(object):
     """Container for data from the ERA-Interim Dataset.
     """
 
+    allvars = ['U', 'V', 'T', 'Z', 'Q', 'P', 'SST']
+    vars2d = ['P', 'SST']
+
     ntime = 0
     nht = 0
     nlat = 0
@@ -93,7 +96,7 @@ class era_dataset(object):
         """(str) -> str
 
         returns the proper var name for the given var in
-        ['U', 'V', 'T', 'Z', 'Q', 'P']
+        ['U', 'V', 'T', 'Z', 'Q', 'P', 'SST']
 
         >>> ed.__get_var_name('U')
         'U_GDS0_ISBL'
@@ -112,10 +115,12 @@ class era_dataset(object):
         if not var:
             var = self.var
 
-        assert(var in ['U', 'V', 'T', 'Z', 'Q', 'P'])
+        assert(var in self.allvars)
 
         if var == 'P':
             return 'MSL_GDS0_SFC'
+        elif var == 'SST':
+            return 'SSTK_GDS0_SFC'
         else:
             return '{:1}_GDS0_ISBL'.format(var)
 
@@ -140,8 +145,8 @@ class era_dataset(object):
         if not var:
             var = self.var
 
-        assert(var in ['U', 'V', 'T', 'Z', 'Q', 'P'])
-        if var == 'P':
+        assert(var in self.allvars)
+        if var in self.vars2d:
             return 'g0_lat_1'
         return 'g0_lat_2'
 
@@ -166,8 +171,8 @@ class era_dataset(object):
         if not var:
             var = self.var
 
-        assert(var in ['U', 'V', 'T', 'Z', 'Q', 'P'])
-        if var == 'P':
+        assert(var in self.allvars)
+        if var in self.vars2d:
             return 'g0_lon_2'
         return 'g0_lon_3'
 
@@ -192,7 +197,7 @@ class era_dataset(object):
         if not var:
             var = self.var
 
-        assert(var in ['U', 'V', 'T', 'Z', 'Q', 'P'])
+        assert(var in self.allvars)
         return 'initial_time0_hours'
 
     def __get_ht_name(self, var=None):
@@ -217,8 +222,8 @@ class era_dataset(object):
         if not var:
             var = self.var
 
-        assert (var in ['U', 'V', 'T', 'Z', 'Q', 'P'])
-        if var == 'P':
+        assert (var in self.allvars)
+        if var in self.vars2d:
             return ''
         return 'lv_ISBL1'
 
@@ -280,7 +285,7 @@ class era_dataset(object):
         else:
             this_var = self.var
 
-        assert(this_var in ['U', 'V', 'T', 'Z', 'Q', 'P'])
+        assert(this_var in self.allvars)
 
         if not date:
             this_date = self.reference_date
@@ -294,8 +299,11 @@ class era_dataset(object):
             'var': this_var
         }
         if this_var == 'P':
-            vals['level'] = 'sfc'
             vals['var'] = 'MSL'
+        elif this_var == 'SST':
+            vals['var'] = 'SSTK'
+        if this_var in self.vars2d:
+            vals['level'] = 'sfc'
 
         return file_template.format(**vals)
 
@@ -549,7 +557,8 @@ class era_dataset(object):
         for f, t in zip(self.filename_list, self.time_idxs):
             ncid = nc.Dataset(f, 'r')
             units = ncid.variables[varname].units
-            if self.var == 'P':
+            fill_value = ncid.variables[varname]._FillValue
+            if self.var in self.vars2d:
                 data = ncid.variables[varname][t, self.lat_idxs, self.lon_idxs]
                 data.shape = (data.shape[0], 1, data.shape[1], data.shape[2])
             else:
@@ -559,6 +568,7 @@ class era_dataset(object):
             ncid.close()
         self.data = data_array
         self.units = units
+        self.fill_value = fill_value
 
     def ensure_Pa(self):
         """Ensure that Pressure units is Pascal and not hPa
@@ -570,14 +580,12 @@ class era_dataset(object):
             self.data *= 100.0
             self.units = 'Pa'
 
-
     def ensure_ascending(self):
 
         if self.var != 'P':
             if self.ht_array[0] < self.ht_array[-1]:
                 self.ht_array = self.ht_array[::-1]
                 self.data[:, :, :, :] = self.data[:, ::-1, :, :]
-
 
     def convert_geop_to_m(self):
         """Converts the geopotential to meters by dividing
@@ -653,7 +661,7 @@ class era_dataset(object):
 
 if __name__ == '__main__':
 
-    u = era_dataset('U')
+    u = era_dataset('SST')
     u.read_ht_array()
 
     u.read_lat_array()
