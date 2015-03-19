@@ -228,7 +228,9 @@ def replace_namelist(template, out_data, conf):
     delta = conf.end_date - conf.start_date
     return_namelist['rundata']['nminin'] = int((delta.total_seconds()+1) / 60)
 
-    inobsfor['tstar_forcing'] = [288.0] * conf.num
+    if conf.sea:
+        inobsfor['tstar_forcing'] = out_data['sst'].flatten(order='F').tolist()
+        return_namelist['cntlscm']['land_points'] = 0
 
     return return_namelist
 
@@ -323,8 +325,8 @@ def parse_arguments():
                         default='template.scm', help='Namelist Template')
     parser.add_argument('-o', '--output', metavar='FILE',
                         default='namelist.scm', help='Output Namelist')
-    parser.add_argument('-r', '--relhum', default=False, action='store_true',
-                        help='Convert Relative to Specific Humidity')
+    parser.add_argument('-s', '--sea', default=False, action='store_true',
+                        help='Calculate for Sea')
     parser.add_argument('-d', '--debug', default=False, action='store_true',
                         help='Debug')
     parser.add_argument('-T', '--test', help='run doctest on this module',
@@ -359,7 +361,7 @@ def main():
 
     # Read the data from the ERA-Interim NetCDF files
     data_in = {}
-    for var in ['U', 'V', 'T', 'Z', 'Q', 'P']:
+    for var in ['U', 'V', 'T', 'Z', 'Q', 'P', 'SST']:
         data_in[var] = era_dataset(var)
         data_in[var].read_ht_array()
 
@@ -372,6 +374,8 @@ def main():
         data_in[var].select_time_array(
             start=conf.start_date, end=conf.end_date
         )
+
+        logger.log('reading file {}'.format(data_in[var].get_file_name()))
 
         data_in[var].read_data()
 
@@ -401,7 +405,7 @@ def main():
 
     # Interpolate the data along its longitude
     data_xi = {}
-    for var in ['U', 'V', 'T', 'Z', 'Q', 'P']:
+    for var in ['U', 'V', 'T', 'Z', 'Q', 'P', 'SST']:
         data_xi[var] = data_in[var].interp_lon(conf.lon)
         logger.log('{} interpolated all -> xi, shape = {}'.format(
             var, data_xi[var].data.shape))
@@ -417,7 +421,7 @@ def main():
     # Interpolate the data along the latitude as well so that we now have the
     # values for the one location we are looking at.
     data_si = {}
-    for var in ['U', 'V', 'T', 'Z', 'Q', 'P']:
+    for var in ['U', 'V', 'T', 'Z', 'Q', 'P', 'SST']:
         data_si[var] = data_xi[var].interp_lat(conf.lat)
         logger.log('{} interpolated xi -> si, shape = {}'.format(
             var, data_si[var].data.shape))
@@ -433,6 +437,7 @@ def main():
     z_si = data_si['Z'].data[:, :, 0, 0]
     q_si = data_si['Q'].data[:, :, 0, 0]
     msl_si = data_si['P'].data[:, 0, 0, 0]
+    sst_si = data_si['SST'].data[:, 0, 0, 0]
 
     # 4 Height arrays:
     #  ht is the height dimension of the netCDF vars, and is in pressure
@@ -487,6 +492,7 @@ def main():
         'z': z_si,
         'pt': pt_si,
         'msl': msl_si,
+        'sst': sst_si,
         'ug': ug,
         'vg': vg
     }
@@ -523,7 +529,8 @@ def main():
         'q': q_um,
         'p': p_um,
         'gradt': gradt_um,
-        'gradq': gradq_um
+        'gradq': gradq_um,
+        'sst': sst_si
     }
 
     if conf.debug:

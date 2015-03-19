@@ -432,6 +432,17 @@ class era_dataset(object):
 
         return return_array, units
 
+    def __get_fill_value(self):
+
+        ncid = nc.Dataset(self.get_file_name(), 'r')
+        var = ncid.variables[self.__get_var_name()]
+        if hasattr(var, '_FillValue'):
+            self.fill_value = var._FillValue
+        if hasattr(var, 'scale_factor'):
+            self.fill_value *= var.scale_factor
+        if hasattr(var, 'add_offset'):
+            self.fill_value += var.add_offset
+
     def read_ht_array(self):
         """Reads the height array into this object
         """
@@ -557,9 +568,6 @@ class era_dataset(object):
         for f, t in zip(self.filename_list, self.time_idxs):
             ncid = nc.Dataset(f, 'r')
             units = ncid.variables[varname].units
-            fill_value = (ncid.variables[varname]._FillValue *
-                          ncid.variables[varname].scale_factor +
-                          ncid.variables[varname].add_offset)
             if self.var in self.vars2d:
                 data = ncid.variables[varname][t, self.lat_idxs, self.lon_idxs]
                 data.shape = (data.shape[0], 1, data.shape[1], data.shape[2])
@@ -570,7 +578,7 @@ class era_dataset(object):
             ncid.close()
         self.data = data_array
         self.units = units
-        self.fill_value = fill_value
+        self.__get_fill_value()
 
     def ensure_Pa(self):
         """Ensure that Pressure units is Pascal and not hPa
@@ -671,7 +679,7 @@ class era_dataset(object):
 
 if __name__ == '__main__':
 
-    u = era_dataset('SST')
+    u = era_dataset('U')
     u.read_ht_array()
 
     u.read_lat_array()

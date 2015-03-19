@@ -155,7 +155,7 @@ class Genesis_Config(object):
         self.__calc_num()
 
         self.output = args.output
-        self.relhum = args.relhum
+        self.sea = args.sea
         self.debug = args.debug
 
         self.z_terrain_asl = base['base']['z_terrain_asl']
