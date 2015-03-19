@@ -436,7 +436,7 @@ class era_dataset(object):
         """Reads the height array into this object
         """
 
-        if self.var == 'P':
+        if self.var in self.vars2d:
             self.set_ht_array(np.zeros(1))
         else:
             self.set_ht_array(
@@ -627,6 +627,7 @@ class era_dataset(object):
         return_set.set_lon_array(np.array([lon]), self.lon_units)
         return_set.reference_date = self.reference_date
         return_set.units = self.units
+        return_set.fill_value = self.fill_value
 
         return_set.data = np.empty((self.ntime, self.nht, self.nlat, 1))
 
@@ -653,6 +654,7 @@ class era_dataset(object):
         return_set.set_lon_array(self.lon_array, self.lon_units)
         return_set.reference_date = self.reference_date
         return_set.units = self.units
+        return_set.fill_value = self.fill_value
 
         return_set.data = np.empty((self.ntime, self.nht, 1, self.nlon))
 
