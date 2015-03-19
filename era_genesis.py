@@ -393,6 +393,14 @@ def main():
     logger.log('latitudes: {}'.format(data_in['Z'].lat_array))
     logger.log('longitudes: {}'.format(data_in['Z'].lon_array))
 
+    # Check whether the points are land points:
+    if conf.sea:
+        if np.all(data_in['SST'].data == data_in['SST'].fill_value):
+            raise(ValueError('All surrounding points are land points. ERROR'))
+        if np.any(data_in['SST'].data == data_in['SST'].fill_value):
+            print("WARNING: Some surrounding points are land points.")
+
+
     # Convert the Geopotential to height in metres
     data_in['Z'].convert_geop_to_m()
     logger.log('Z converted to metres')
