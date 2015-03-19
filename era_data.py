@@ -557,7 +557,9 @@ class era_dataset(object):
         for f, t in zip(self.filename_list, self.time_idxs):
             ncid = nc.Dataset(f, 'r')
             units = ncid.variables[varname].units
-            fill_value = ncid.variables[varname]._FillValue
+            fill_value = (ncid.variables[varname]._FillValue *
+                          ncid.variables[varname].scale_factor +
+                          ncid.variables[varname].add_offset)
             if self.var in self.vars2d:
                 data = ncid.variables[varname][t, self.lat_idxs, self.lon_idxs]
                 data.shape = (data.shape[0], 1, data.shape[1], data.shape[2])
@@ -601,10 +603,16 @@ class era_dataset(object):
     def __interp(self, x, xp, fp, left=None, right=None):
         """Wrapper for np.interp for when xp is descending."""
 
-        if xp[0] > xp[-1]:
-            return np.interp(x, xp[::-1], fp[::-1], left, right)
+        if np.all(fp == self.fill_value):
+            return self.fill_value
+        my_xp = xp[fp != self.fill_value]
+        my_fp = fp[fp != self.fill_value]
+
+
+        if my_xp[0] > my_xp[-1]:
+            return np.interp(x, my_xp[::-1], my_fp[::-1], left, right)
         else:
-            return np.interp(x, xp, fp, left, right)
+            return np.interp(x, my_xp, my_fp, left, right)
 
     def interp_lon(self, lon):
         """Returns a copy of this dataset, except that the longitude
