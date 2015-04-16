@@ -155,7 +155,9 @@ class Genesis_Config(object):
         self.__calc_num()
 
         self.output = args.output
-        self.sea = args.sea
+        assert(args.surface_type.lower() in ['auto', 'land', 'sea', 'coast'],
+               "Surface type must be 'auto', 'land', 'sea', or 'coast'")
+        self.surface = args.surface_type.lower()
         self.debug = args.debug
 
         self.z_terrain_asl = base['base']['z_terrain_asl']

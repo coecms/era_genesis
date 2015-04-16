@@ -228,9 +228,8 @@ def replace_namelist(template, out_data, conf):
     delta = conf.end_date - conf.start_date
     return_namelist['rundata']['nminin'] = int((delta.total_seconds()+1) / 60)
 
-    if conf.sea:
+    if conf.surface == 'sea' or conf.surface == 'coast':
         inobsfor['tstar_forcing'] = out_data['sst'].flatten(order='F').tolist()
-        return_namelist['cntlscm']['land_points'] = 0
 
     return return_namelist
 
@@ -325,8 +324,8 @@ def parse_arguments():
                         default='template.scm', help='Namelist Template')
     parser.add_argument('-o', '--output', metavar='FILE',
                         default='namelist.scm', help='Output Namelist')
-    parser.add_argument('-s', '--sea', default=False, action='store_true',
-                        help='Calculate for Sea')
+    parser.add_argument('-s', '--surface_type', default='auto',
+                        help='Surface Type: land, sea, or coast')
     parser.add_argument('-d', '--debug', default=False, action='store_true',
                         help='Debug')
     parser.add_argument('-T', '--test', help='run doctest on this module',
@@ -335,6 +334,70 @@ def parse_arguments():
     args = parser.parse_args()
 
     return args
+
+
+def auto_determine_surface(conf, template):
+
+    land_points = template['cntlscm']['land_points']
+    land_sea_mask = template['logic']['land_sea_mask']
+    soil_mask = template['logic']['soil_mask']
+    fland_ctile = template['rundata']['fland_ctile']
+    if (
+        land_points == 0 and
+        not land_sea_mask and
+        not soil_mask and
+        fland_ctile < 1e-4
+    ):
+        print("Surface Auto-Detect: Sea only.")
+        conf.surface = 'sea'
+    elif (
+        land_points == 1 and
+        land_sea_mask and
+        soil_mask and
+        fland_ctile > 0.9999
+    ):
+        print("Surface Auto-Detect: Land only.")
+        conf.surface = 'land'
+    if (
+        land_points == 1 and
+        land_sea_mask and
+        soil_mask and
+        1e-4 <= fland_ctile <= 0.9999
+    ):
+        print("Surface Auto-Detect: Coast.")
+        conf.surface = 'coast'
+    else:
+        raise ValueError("Can't autodetermine Surface Type")
+
+
+def check_surface(conf, num_land_points, logger):
+    if conf.surface == 'sea':
+        if num_land_points > 3:
+            raise ValueError("Surface Type Sea selected, but all " +
+                             "surrounding points are land")
+        elif 0 < num_land_points <= 3:
+            print(
+                "Warning: {} of 4 surrounding points at your specified " +
+                "position are land.".format(num_land_points))
+    elif conf.surface == 'land':
+        if num_land_points < 1:
+            raise ValueError("Surface Type Land selected, but all " +
+                             "surrounding points are Sea")
+        elif 0 < num_land_points <= 3:
+            print(
+                "Warning: {} of 4 surrounding points at your specified " +
+                "position are sea.".format(4-num_land_points))
+    elif conf.surface == 'coast':
+        if num_land_points > 3:
+            raise ValueError("Surface Type Coast selected, but all " +
+                             "surrounding points are land")
+        elif num_land_points == 0:
+            print(
+                "Warning: All 4 surrounding points at your specified " +
+                "position are land points.")
+        else:
+            logger.log("{} of 4 surrounding points at your specified " +
+                       "position are land points.".format(num_land_points))
 
 
 def main():
@@ -393,19 +456,11 @@ def main():
     logger.log('latitudes: {}'.format(data_in['Z'].lat_array))
     logger.log('longitudes: {}'.format(data_in['Z'].lon_array))
 
-    # Check whether the points are land points:
+    # Count the number of land points:
     land_point = [
         [pt == data_in['SST'].fill_value for pt in lat]
-        for lat in data_in['SST'].data[0,0,:,:]]
-    print(land_point)
+        for lat in data_in['SST'].data[0, 0, :, :]]
     num_land_points = (land_point[0] + land_point[1]).count(True)
-    print(num_land_points)
-    if conf.sea:
-        if np.all(data_in['SST'].data == data_in['SST'].fill_value):
-            raise(ValueError('All surrounding points are land points. ERROR'))
-        if np.any(data_in['SST'].data == data_in['SST'].fill_value):
-            print("WARNING: Some surrounding points are land points.")
-
 
     # Convert the Geopotential to height in metres
     data_in['Z'].convert_geop_to_m()
@@ -554,6 +609,11 @@ def main():
 
     # Read the template for the namelist.
     template = f90nml.read(conf.template)
+
+    if conf.surface == 'auto':
+        auto_determine_surface(conf, template)
+
+    check_surface(conf, num_land_points, logger)
 
     # Update the values that we want to change.
     out_namelist = replace_namelist(template, out_data, conf)
