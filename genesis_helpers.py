@@ -7,6 +7,15 @@ import numpy as np
 import datetime
 
 
+class GenesisError(Exception):
+
+    def __init__(self, data):
+        self._data = data
+
+    def __str__(self):
+        return self._data
+
+
 class logger(object):
 
     active = False

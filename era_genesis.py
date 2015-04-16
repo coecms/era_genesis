@@ -376,13 +376,13 @@ def auto_determine_surface(conf, template):
               """.format(land_points, land_sea_mask, soil_mask, fland_ctile)
               )
 
-        raise ValueError("Can't autodetermine Surface Type")
+        raise h.GenesisError("Can't autodetermine Surface Type")
 
 
 def check_surface(conf, num_land_points, logger):
     if conf.surface == 'sea':
         if num_land_points > 3:
-            raise ValueError("Surface Type Sea selected, but all " +
+            raise h.GenesisError("Surface Type Sea selected, but all " +
                              "surrounding points are land")
         elif 0 < num_land_points <= 3:
             print(
@@ -390,7 +390,7 @@ def check_surface(conf, num_land_points, logger):
                 "position are land.").format(num_land_points))
     elif conf.surface == 'land':
         if num_land_points < 1:
-            raise ValueError("Surface Type Land selected, but all " +
+            raise h.GenesisError("Surface Type Land selected, but all " +
                              "surrounding points are Sea")
         elif 0 < num_land_points <= 3:
             print(
@@ -398,7 +398,7 @@ def check_surface(conf, num_land_points, logger):
                 "position are sea.").format(4-num_land_points))
     elif conf.surface == 'coast':
         if num_land_points > 3:
-            raise ValueError("Surface Type Coast selected, but all " +
+            raise h.GenesisError("Surface Type Coast selected, but all " +
                              "surrounding points are land")
         elif num_land_points == 0:
             print(
@@ -632,4 +632,7 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except h.GenesisError as e:
+        print("ERROR: {}".format(e))
