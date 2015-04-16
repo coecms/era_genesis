@@ -358,7 +358,7 @@ def auto_determine_surface(conf, template):
     ):
         print("Surface Auto-Detect: Land only.")
         conf.surface = 'land'
-    if (
+    elif (
         land_points == 1 and
         land_sea_mask and
         soil_mask and
@@ -367,6 +367,15 @@ def auto_determine_surface(conf, template):
         print("Surface Auto-Detect: Coast.")
         conf.surface = 'coast'
     else:
+        print("""
+              Template claims:
+                land_points = {}
+                land_sea_mask = {}
+                soil_mask = {}
+                fland_ctile = {}
+              """.format(land_points, land_sea_mask, soil_mask, fland_ctile)
+              )
+
         raise ValueError("Can't autodetermine Surface Type")
 
 
@@ -377,16 +386,16 @@ def check_surface(conf, num_land_points, logger):
                              "surrounding points are land")
         elif 0 < num_land_points <= 3:
             print(
-                "Warning: {} of 4 surrounding points at your specified " +
-                "position are land.".format(num_land_points))
+                ("Warning: {} of 4 surrounding points at your specified " +
+                "position are land.").format(num_land_points))
     elif conf.surface == 'land':
         if num_land_points < 1:
             raise ValueError("Surface Type Land selected, but all " +
                              "surrounding points are Sea")
         elif 0 < num_land_points <= 3:
             print(
-                "Warning: {} of 4 surrounding points at your specified " +
-                "position are sea.".format(4-num_land_points))
+                ("Warning: {} of 4 surrounding points at your specified " +
+                "position are sea.").format(4-num_land_points))
     elif conf.surface == 'coast':
         if num_land_points > 3:
             raise ValueError("Surface Type Coast selected, but all " +
@@ -394,10 +403,10 @@ def check_surface(conf, num_land_points, logger):
         elif num_land_points == 0:
             print(
                 "Warning: All 4 surrounding points at your specified " +
-                "position are land points.")
+                "position are sea points.")
         else:
-            logger.log("{} of 4 surrounding points at your specified " +
-                       "position are land points.".format(num_land_points))
+            logger.log(("{} of 4 surrounding points at your specified " +
+                       "position are land points.").format(num_land_points))
 
 
 def main():
