@@ -394,6 +394,12 @@ def main():
     logger.log('longitudes: {}'.format(data_in['Z'].lon_array))
 
     # Check whether the points are land points:
+    land_point = [
+        [pt == data_in['SST'].fill_value for pt in lat]
+        for lat in data_in['SST'].data[0,0,:,:]]
+    print(land_point)
+    num_land_points = (land_point[0] + land_point[1]).count(True)
+    print(num_land_points)
     if conf.sea:
         if np.all(data_in['SST'].data == data_in['SST'].fill_value):
             raise(ValueError('All surrounding points are land points. ERROR'))
