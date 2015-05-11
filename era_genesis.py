@@ -319,7 +319,7 @@ def parse_arguments():
     parser.add_argument('-E', '--end-date', help='end date: YYYYMMDD[HHMM]')
     parser.add_argument('-N', '--num', help='number of times', type=int)
     parser.add_argument('-b', '--base', metavar='FILE', default='base.inp',
-                        help='Namelist Template')
+                        help='Base Namelist')
     parser.add_argument('-t', '--template', metavar='FILE',
                         default='template.scm', help='Namelist Template')
     parser.add_argument('-o', '--output', metavar='FILE',
